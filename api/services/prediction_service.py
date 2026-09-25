@@ -4,6 +4,7 @@ import pandas as pd
 import joblib
 from datetime import datetime
 from pathlib import Path
+from .air_quality_service import AirQualityService
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 MODEL_PATH = BASE_DIR / "models" / "vayulens_model.pkl"
@@ -29,21 +30,21 @@ class PredictionService:
             features = metadata.get('features', [])
             now = datetime.now()
 
-            # Construct row with mapped feature defaults or current inputs
+            # Construct input row using station's current atmospheric metrics
             input_dict = {}
             for feat in features:
                 if 'PM2.5' in feat:
-                    input_dict[feat] = float(current_data.get('PM2.5', 42.5))
+                    input_dict[feat] = float(current_data.get('pm25', current_data.get('PM2.5', 42.5)))
                 elif 'PM10' in feat:
-                    input_dict[feat] = float(current_data.get('PM10', 81.2))
+                    input_dict[feat] = float(current_data.get('pm10', current_data.get('PM10', 81.2)))
                 elif 'NO2' in feat:
-                    input_dict[feat] = float(current_data.get('NO2', 27.5))
+                    input_dict[feat] = float(current_data.get('no2', current_data.get('NO2', 27.5)))
                 elif 'SO2' in feat:
-                    input_dict[feat] = float(current_data.get('SO2', 13.5))
+                    input_dict[feat] = float(current_data.get('so2', current_data.get('SO2', 13.5)))
                 elif 'CO' in feat:
-                    input_dict[feat] = float(current_data.get('CO', 1.05))
+                    input_dict[feat] = float(current_data.get('co', current_data.get('CO', 1.05)))
                 elif 'Ozone' in feat:
-                    input_dict[feat] = float(current_data.get('O3', 28.4))
+                    input_dict[feat] = float(current_data.get('o3', current_data.get('O3', 28.4)))
                 elif 'AT' in feat:
                     input_dict[feat] = float(current_data.get('temperature', 28.1))
                 elif 'RH' in feat:
@@ -59,28 +60,31 @@ class PredictionService:
                 elif 'Month' in feat:
                     input_dict[feat] = now.month
                 else:
-                    # Sensor defaults matching typical dataset medians
                     input_dict[feat] = 0.0
 
             input_df = pd.DataFrame([input_dict])
             predicted_pm25 = float(model.predict(input_df)[0])
 
-            # Calculate AQI equivalent for predicted PM2.5
-            from .openaq_service import OpenAQService
-            predicted_aqi = OpenAQService.calculate_aqi(predicted_pm25)
-            cat_info = OpenAQService.get_aqi_category(predicted_aqi)
+            predicted_aqi = AirQualityService.calculate_aqi(predicted_pm25)
+            cat_info = AirQualityService.get_aqi_category(predicted_aqi)
 
-            # Feature importance list (top 6)
+            # Feature importance list
             feat_imp = metadata.get('feature_importance', {})
             sorted_imp = sorted(feat_imp.items(), key=lambda x: x[1], reverse=True)[:6]
             top_features = [{"feature": k.split(' ')[0], "importance": round(v * 100, 1)} for k, v in sorted_imp]
 
+            station_name = current_data.get('name', current_data.get('station', 'Bengaluru Station'))
+
             return {
                 "success": True,
                 "data": {
+                    "station": station_name,
                     "prediction": round(predicted_pm25, 2),
                     "predicted_aqi": predicted_aqi,
                     "category": cat_info["category"],
+                    "category_label": cat_info["label"],
+                    "badge_bg": cat_info["badge_bg"],
+                    "badge_text": cat_info["badge_text"],
                     "unit": "µg/m³",
                     "target": metadata.get('target', 'PM2.5_Next_Hour'),
                     "model": metadata.get('model_name', 'RandomForestRegressor'),

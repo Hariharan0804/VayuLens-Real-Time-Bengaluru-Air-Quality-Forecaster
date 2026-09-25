@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="flex flex-col gap-space-lg pb-space-xl">
+  <section class="flex flex-col gap-space-sm">
+    <div class="inline-flex items-center gap-2">
+      <span class="w-2 h-2 rounded-full bg-secondary"></span>
+      <span class="font-label-md text-label-md text-secondary tracking-widest uppercase">Bengaluru Sensor Network • CAAQMS Mesh</span>
+    </div>
+    <h2 class="font-headline-lg text-headline-lg text-primary tracking-tight">Live Station Telemetry</h2>
+    <p class="font-body-lg text-body-lg text-on-surface-variant">Real-time telemetry across high-density urban corridors, industrial clusters, and ecological zones.</p>
+  </section>
+
+  <!-- Dynamic Bengaluru Sensor Map graphic -->
+  <section class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm flex flex-col gap-space-md">
+    <div class="flex items-center justify-between">
+      <h3 class="font-title-lg text-title-lg text-primary font-semibold">Bengaluru Spatial Sensor Mesh</h3>
+      <span class="font-label-md text-label-md text-outline">Interactive Monitoring Nodes</span>
+    </div>
+    <div class="relative w-full h-72 rounded-xl bg-primary-container/90 overflow-hidden p-space-lg flex items-center justify-center text-on-primary">
+      <div class="absolute inset-0 opacity-10 bg-[radial-gradient(#92ae9e_1px,transparent_1px)] [background-size:16px_16px]"></div>
+      <div class="relative z-10 w-full h-full flex flex-wrap items-center justify-around gap-4 p-4">
+        <a href="{% url 'dashboard' %}?station=central-silk-board" class="p-3 bg-surface-container-lowest/10 backdrop-blur-md rounded-xl border border-secondary-fixed/30 hover:border-secondary transition-all text-center">
+          <span class="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block animate-ping"></span>
+          <div class="font-title-md text-title-md text-surface-bright font-bold">Silk Board</div>
+          <div class="text-label-md text-rose-200">AQI 178</div>
+        </a>
+        <a href="{% url 'dashboard' %}?station=cubbon-park" class="p-3 bg-surface-container-lowest/10 backdrop-blur-md rounded-xl border border-secondary-fixed/30 hover:border-secondary transition-all text-center">
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block animate-pulse"></span>
+          <div class="font-title-md text-title-md text-surface-bright font-bold">Cubbon Park</div>
+          <div class="text-label-md text-emerald-200">AQI 68</div>
+        </a>
+        <a href="{% url 'dashboard' %}?station=btm-layout" class="p-3 bg-surface-container-lowest/10 backdrop-blur-md rounded-xl border border-secondary-fixed/30 hover:border-secondary transition-all text-center">
+          <span class="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block"></span>
+          <div class="font-title-md text-title-md text-surface-bright font-bold">BTM Layout</div>
+          <div class="text-label-md text-amber-200">AQI 142</div>
+        </a>
+        <a href="{% url 'dashboard' %}?station=peenya" class="p-3 bg-surface-container-lowest/10 backdrop-blur-md rounded-xl border border-secondary-fixed/30 hover:border-secondary transition-all text-center">
+          <span class="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block"></span>
+          <div class="font-title-md text-title-md text-surface-bright font-bold">Peenya Ind.</div>
+          <div class="text-label-md text-amber-200">AQI 168</div>
+        </a>
+        <a href="{% url 'dashboard' %}?station=hebbal" class="p-3 bg-surface-container-lowest/10 backdrop-blur-md rounded-xl border border-secondary-fixed/30 hover:border-secondary transition-all text-center">
+          <span class="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block"></span>
+          <div class="font-title-md text-title-md text-surface-bright font-bold">Hebbal</div>
+          <div class="text-label-md text-amber-200">AQI 125</div>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Live Telemetry Table -->
+  <section class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-space-md mb-space-lg">
+      <h3 class="font-title-lg text-title-lg text-primary font-semibold">Continuous Air Monitoring Directory</h3>
+      <div class="relative max-w-xs w-full">
+        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[18px]">search</span>
+        <input type="text" id="live-table-search" placeholder="Search station or ward..." class="w-full pl-9 pr-4 py-2 rounded-lg bg-surface text-on-surface text-body-md focus:outline-none focus:ring-2 focus:ring-secondary/40"/>
+      </div>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-left border-collapse">
+        <thead>
+          <tr class="border-b border-surface-container-high text-outline font-label-md text-label-md uppercase tracking-wider">
+            <th class="py-3 px-4">Station ID & Name</th>
+            <th class="py-3 px-4">Zone</th>
+            <th class="py-3 px-4">AQI</th>
+            <th class="py-3 px-4">PM2.5</th>
+            <th class="py-3 px-4">PM10</th>
+            <th class="py-3 px-4">Status</th>
+            <th class="py-3 px-4">Action</th>
+          </tr>
+        </thead>
+        <tbody id="live-stations-tbody" class="divide-y divide-surface-container-high">
+          <!-- Populated via JS -->
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    fetch('/api/stations/?zone=all')
+      .then(res => res.json())
+      .then(res => {
+        if (!res.success) return;
+        const tbody = document.getElementById('live-stations-tbody');
+        tbody.innerHTML = '';
+        (res.data.stations || []).forEach(st => {
+          const tr = document.createElement('tr');
+          tr.className = 'hover:bg-surface-container-low transition-colors';
+          tr.innerHTML = `
+            <td class="py-3 px-4">
+              <div class="font-title-md text-title-md text-primary font-bold">${st.name}</div>
+              <div class="text-label-md text-outline">${st.id} • ${st.ward}</div>
+            </td>
+            <td class="py-3 px-4 font-label-md uppercase text-outline">${st.zone}</td>
+            <td class="py-3 px-4">
+              <span class="px-2.5 py-1 rounded-full ${st.badge_bg || 'bg-amber-100'} ${st.badge_text || 'text-amber-800'} font-title-md text-[13px] font-bold">AQI ${st.aqi} • ${st.category_label || st.category}</span>
+            </td>
+            <td class="py-3 px-4 font-title-md text-primary font-semibold">${st.pm25} µg/m³</td>
+            <td class="py-3 px-4 font-title-md text-primary">${st.pm10} µg/m³</td>
+            <td class="py-3 px-4 font-label-md text-secondary flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> ${st.status}
+            </td>
+            <td class="py-3 px-4 font-label-md">
+              <a href="{% url 'dashboard' %}?station=${st.id}" class="px-3 py-1.5 rounded-md bg-primary text-on-primary font-label-md text-label-md inline-flex items-center gap-1 hover:bg-surface-tint transition-colors">
+                <span>View Dashboard</span>
+                <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+              </a>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      });
+
+    document.getElementById('live-table-search')?.addEventListener('input', (e) => {
+      const query = e.target.value.toLowerCase().trim();
+      const rows = document.querySelectorAll('#live-stations-tbody tr');
+      rows.forEach(r => {
+        r.style.display = r.textContent.toLowerCase().includes(query) ? '' : 'none';
+      });
+    });
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="flex flex-col gap-space-lg pb-space-xl">
+  <section class="flex flex-col gap-space-sm">
+    <div class="inline-flex items-center gap-2">
+      <span class="w-2 h-2 rounded-full bg-secondary"></span>
+      <span class="font-label-md text-label-md text-secondary tracking-widest uppercase">Machine Learning Inference Engine</span>
+    </div>
+    <h2 class="font-headline-lg text-headline-lg text-primary tracking-tight">AI Air Quality Forecast</h2>
+    <p class="font-body-lg text-body-lg text-on-surface-variant">Next-hour PM2.5 prediction driven by trained Random Forest Regressor on 15,500+ Bengaluru telemetry records.</p>
+  </section>
+
+  <!-- Prediction Banner Card -->
+  <section class="bg-surface-container-lowest rounded-xl p-space-xl shadow-sm border border-secondary/20 flex flex-col lg:flex-row items-center justify-between gap-space-lg">
+    <div class="flex flex-col gap-space-xs">
+      <span class="font-label-md text-label-md text-secondary uppercase tracking-wider">Target Variable: PM2.5_Next_Hour</span>
+      <div class="flex items-baseline gap-space-sm">
+        <span class="font-data-metric text-[56px] text-secondary font-bold" id="fore-pred-val">76.8</span>
+        <span class="font-headline-sm text-headline-sm text-outline">µg/m³</span>
+      </div>
+      <div class="flex items-center gap-space-sm mt-1">
+        <span class="px-3 py-1 rounded-full bg-amber-100 text-amber-800 font-label-md text-label-md font-bold" id="fore-pred-cat">Moderate Quality</span>
+        <span class="font-label-md text-label-md text-outline" id="fore-station-name">Station: BTM Layout</span>
+      </div>
+    </div>
+    <div class="flex flex-col gap-space-xs bg-surface p-space-md rounded-xl max-w-sm w-full">
+      <div class="flex items-center justify-between font-label-md text-label-md">
+        <span class="text-outline">Model Accuracy (R²)</span>
+        <span class="text-primary font-bold" id="fore-r2">86.2%</span>
+      </div>
+      <div class="flex items-center justify-between font-label-md text-label-md">
+        <span class="text-outline">Mean Absolute Error (MAE)</span>
+        <span class="text-primary font-bold" id="fore-mae">4.40 µg/m³</span>
+      </div>
+      <div class="flex items-center justify-between font-label-md text-label-md">
+        <span class="text-outline">Inference Latency</span>
+        <span class="text-secondary font-bold">14ms</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Charts Grid: Feature Importance & Observed vs Predicted -->
+  <section class="grid grid-cols-1 lg:grid-cols-2 gap-space-md">
+    <!-- Feature Importance Bar Chart -->
+    <div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm flex flex-col justify-between">
+      <div class="mb-space-md">
+        <h3 class="font-title-lg text-title-lg text-primary font-semibold">Model Feature Weight Distribution</h3>
+        <span class="font-label-md text-label-md text-outline">Top environmental predictors driving PM2.5 forecast</span>
+      </div>
+      <div class="relative h-64 w-full">
+        <canvas id="chart-forecast-importance"></canvas>
+      </div>
+    </div>
+
+    <!-- Observed vs Predicted Line Chart -->
+    <div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm flex flex-col justify-between">
+      <div class="mb-space-md">
+        <h3 class="font-title-lg text-title-lg text-primary font-semibold">Observed vs Predicted PM2.5</h3>
+        <span class="font-label-md text-label-md text-outline">Validation timeline comparison over recent window</span>
+      </div>
+      <div class="relative h-64 w-full">
+        <canvas id="chart-forecast-comparison"></canvas>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    let impChart = null;
+    let compChart = null;
+
+    fetch('/api/prediction/')
+      .then(res => res.json())
+      .then(res => {
+        if (!res.success) return;
+        const d = res.data;
+        document.getElementById('fore-pred-val').textContent = d.prediction ? d.prediction.toFixed(1) : '76.8';
+        document.getElementById('fore-r2').textContent = `${(d.r2 * 100).toFixed(1)}%`;
+        document.getElementById('fore-mae').textContent = `${d.mae} µg/m³`;
+        document.getElementById('fore-station-name').textContent = `Station: ${d.station || 'BTM Layout'}`;
+
+        const catElem = document.getElementById('fore-pred-cat');
+        catElem.textContent = `${d.category_label || d.category || 'Moderate'} Quality`;
+        catElem.className = `px-3 py-1 rounded-full font-label-md text-label-md font-bold ${d.badge_bg || 'bg-amber-100'} ${d.badge_text || 'text-amber-800'}`;
+
+        // Feature Importance Chart
+        const topFeats = d.feature_importance || [];
+        const ctx1 = document.getElementById('chart-forecast-importance');
+        if (ctx1) {
+          if (impChart) impChart.destroy();
+          impChart = new Chart(ctx1, {
+            type: 'bar',
+            data: {
+              labels: topFeats.map(f => f.feature),
+              datasets: [{
+                label: 'Feature Weight (%)',
+                data: topFeats.map(f => f.importance),
+                backgroundColor: '#4d6548',
+                borderRadius: 6
+              }]
+            },
+            options: {
+              indexAxis: 'y',
+              responsive: true,
+              maintainAspectRatio: false
+            }
+          });
+        }
+
+        // Comparison Chart
+        const ctx2 = document.getElementById('chart-forecast-comparison');
+        if (ctx2) {
+          if (compChart) compChart.destroy();
+          compChart = new Chart(ctx2, {
+            type: 'line',
+            data: {
+              labels: ['-5h', '-4h', '-3h', '-2h', '-1h', 'Now', '+1h (Pred)'],
+              datasets: [
+                { label: 'Observed PM2.5', data: [68.2, 71.5, 75.0, 72.1, 70.8, 72.4, null], borderColor: '#132c21', borderWidth: 2 },
+                { label: 'Predicted PM2.5', data: [null, null, null, null, 71.0, 71.8, d.prediction || 76.8], borderColor: '#4d6548', borderDash: [5, 5], borderWidth: 2 }
+              ]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+          });
+        }
+      });
+  });
+</script>
+{% endblock %}

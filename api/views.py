@@ -33,52 +33,54 @@ class HealthView(BaseAPIView):
 
 class CurrentAirQualityView(BaseAPIView):
     def get(self, request):
-        data = OpenAQService.get_bengaluru_data()
-        return self.success_response(data.get("data", {}))
+        station_id = request.query_params.get('station', 'btm-layout')
+        station_data = StationService.get_station_by_id(station_id)
+        return self.success_response(station_data)
 
 class PredictionView(BaseAPIView):
     def get(self, request):
-        current_res = OpenAQService.get_bengaluru_data()
-        current_data = current_res.get('data', {})
-        result = PredictionService.get_prediction(current_data)
+        station_id = request.query_params.get('station', 'btm-layout')
+        station_data = StationService.get_station_by_id(station_id)
+        result = PredictionService.get_prediction(station_data)
         if result['success']:
             return self.success_response(result['data'])
         return self.error_response(result.get('error', 'Prediction error'))
 
 class DashboardLiveView(BaseAPIView):
     def get(self, request):
-        current = OpenAQService.get_bengaluru_data().get('data', {})
-        pred = PredictionService.get_prediction(current).get('data', {})
-        stations_res = StationService.get_stations(zone_filter="all")
+        station_id = request.query_params.get('station', 'btm-layout')
+        station_data = StationService.get_station_by_id(station_id)
+        pred_res = PredictionService.get_prediction(station_data)
+        pred_data = pred_res.get('data', {}) if pred_res.get('success') else {}
         
-        # 24h sample trend for dashboard chart
-        trend_24h = [
-            {"time": "00:00", "pm25": 42.1},
-            {"time": "03:00", "pm25": 38.5},
-            {"time": "06:00", "pm25": 45.2},
-            {"time": "09:00", "pm25": 58.6},
-            {"time": "12:00", "pm25": 41.0},
-            {"time": "15:00", "pm25": 36.4},
-            {"time": "18:00", "pm25": 52.8},
-            {"time": "21:00", "pm25": 48.0},
-            {"time": "Now", "pm25": current.get("PM2.5", 42.5)}
-        ]
+        all_stations = StationService.get_all_stations()
+
+        # Station-specific insights message
+        primary_pollutant = "PM2.5"
+        if station_data.get("no2", 0) > station_data.get("pm25", 0):
+            primary_pollutant = "NO2 (Vehicular Emissions)"
+        elif station_data.get("so2", 0) > 20:
+            primary_pollutant = "SO2 (Industrial Sulfur)"
+
+        insight_msg = f"{primary_pollutant} is currently the primary pollutant at {station_data['name']}. {station_data['description']}"
 
         return self.success_response({
-            "current": current,
-            "prediction": pred,
-            "trend_24h": trend_24h,
-            "station_count": stations_res["total"],
+            "selected_station": station_data,
+            "prediction": pred_data,
+            "all_stations": all_stations,
+            "insight_message": insight_msg,
             "hotspot": {
                 "name": "Central Silk Board",
                 "aqi": 178,
-                "category": "Poor",
+                "category": "POOR",
+                "label": "Poor",
                 "ward": "Ward 174 • Flyover basin stagnation"
             },
             "cleanest": {
                 "name": "Cubbon Park Eco-Grove",
                 "aqi": 68,
-                "category": "Satisfactory",
+                "category": "MODERATE",
+                "label": "Satisfactory",
                 "ward": "Canopy density filtering active"
             }
         })

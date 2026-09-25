@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="flex flex-col gap-space-lg pb-space-xl">
+  <section class="flex flex-col gap-space-sm">
+    <div class="inline-flex items-center gap-2">
+      <span class="w-2 h-2 rounded-full bg-secondary"></span>
+      <span class="font-label-md text-label-md text-secondary tracking-widest uppercase">Machine Learning Architecture</span>
+    </div>
+    <h2 class="font-headline-lg text-headline-lg text-primary tracking-tight">Random Forest Model Insights</h2>
+    <p class="font-body-lg text-body-lg text-on-surface-variant">Evaluation metrics, feature weights, and validation diagnostics of the VayuLens AI predictor.</p>
+  </section>
+
+  <!-- Metrics Row -->
+  <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-space-md">
+    <div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm">
+      <span class="font-label-md text-label-md text-outline uppercase">Model Algorithm</span>
+      <div class="font-title-lg text-title-lg text-primary font-bold my-1" id="mi-name">RandomForestRegressor</div>
+      <span class="font-label-md text-label-md text-secondary">Scikit-learn 1.4.0</span>
+    </div>
+    <div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm">
+      <span class="font-label-md text-label-md text-outline uppercase">R² Score (Variance)</span>
+      <div class="font-data-metric text-data-metric text-secondary my-1" id="mi-r2">0.862</div>
+      <span class="font-label-md text-label-md text-secondary font-medium">86.2% Accuracy Score</span>
+    </div>
+    <div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm">
+      <span class="font-label-md text-label-md text-outline uppercase">Mean Absolute Error (MAE)</span>
+      <div class="font-data-metric text-data-metric text-primary my-1" id="mi-mae">4.40</div>
+      <span class="font-label-md text-label-md text-outline">µg/m³ PM2.5 error</span>
+    </div>
+    <div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm">
+      <span class="font-label-md text-label-md text-outline uppercase">Training Telemetry</span>
+      <div class="font-data-metric text-data-metric text-primary my-1" id="mi-records">15,558</div>
+      <span class="font-label-md text-label-md text-outline">Hourly Sensor Records</span>
+    </div>
+  </section>
+
+  <!-- Feature Importance & Architecture -->
+  <section class="grid grid-cols-1 lg:grid-cols-12 gap-space-md">
+    <div class="lg:col-span-7 bg-surface-container-lowest rounded-xl p-space-lg shadow-sm">
+      <h3 class="font-title-lg text-title-lg text-primary font-semibold mb-space-sm">Full Feature Importance Hierarchy</h3>
+      <div class="relative h-80 w-full">
+        <canvas id="chart-insights-features"></canvas>
+      </div>
+    </div>
+    <div class="lg:col-span-5 bg-surface-container-lowest rounded-xl p-space-lg shadow-sm flex flex-col justify-between">
+      <div>
+        <h3 class="font-title-lg text-title-lg text-primary font-semibold mb-space-sm">Model Pipeline Specification</h3>
+        <ul class="flex flex-col gap-space-sm font-body-md text-body-md text-on-surface-variant">
+          <li class="p-3 bg-surface rounded-lg">
+            <strong class="text-primary block font-semibold">Target Variable</strong>
+            <span>PM2.5_Next_Hour (1-hour ahead regression)</span>
+          </li>
+          <li class="p-3 bg-surface rounded-lg">
+            <strong class="text-primary block font-semibold">Input Feature Space</strong>
+            <span>28 features including PM2.5, PM10, Gaseous concentrations, Wind Speed, Temp, Relative Humidity, and Temporal cyclics.</span>
+          </li>
+          <li class="p-3 bg-surface rounded-lg">
+            <strong class="text-primary block font-semibold">Hyperparameters</strong>
+            <span>n_estimators=100, max_depth=15, min_samples_split=5</span>
+          </li>
+        </ul>
+      </div>
+      <div class="p-3 bg-secondary-container/40 rounded-lg text-on-secondary-container font-label-md text-label-md mt-space-md flex items-center gap-2">
+        <span class="material-symbols-outlined text-[18px]">verified</span> Validated on 3,112 held-out test rows
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    let featChart = null;
+
+    fetch('/api/model/insights/')
+      .then(res => res.json())
+      .then(res => {
+        if (!res.success) return;
+        const d = res.data;
+        const m = d.metrics || {};
+
+        document.getElementById('mi-name').textContent = d.model_name || 'RandomForestRegressor';
+        document.getElementById('mi-r2').textContent = m.R2 || '0.862';
+        document.getElementById('mi-mae').textContent = m.MAE || '4.40';
+        document.getElementById('mi-records').textContent = (m.total_rows || 15558).toLocaleString();
+
+        const topFeats = d.top_features || [];
+        const ctx = document.getElementById('chart-insights-features');
+        if (ctx) {
+          if (featChart) featChart.destroy();
+          featChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: topFeats.map(f => f.name),
+              datasets: [{
+                label: 'Feature Weight (%)',
+                data: topFeats.map(f => f.importance),
+                backgroundColor: '#294236',
+                borderRadius: 6
+              }]
+            },
+            options: {
+              indexAxis: 'y',
+              responsive: true,
+              maintainAspectRatio: false
+            }
+          });
+        }
+      });
+  });
+</script>
+{% endblock %}

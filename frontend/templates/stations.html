@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="flex flex-col gap-space-lg pb-space-xl">
+  <section class="flex flex-col gap-space-sm">
+    <div class="inline-flex items-center gap-2">
+      <span class="w-2 h-2 rounded-full bg-secondary"></span>
+      <span class="font-label-md text-label-md text-secondary tracking-widest uppercase">Infrastructure & Sensor Network • CPCB Affiliated</span>
+    </div>
+    <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-space-md">
+      <div class="max-w-3xl">
+        <h2 class="font-headline-lg text-headline-lg text-primary tracking-tight">Bengaluru Monitoring Stations</h2>
+        <p class="font-body-lg text-body-lg text-on-surface-variant mt-1 leading-relaxed">
+          Directory of 12 continuous ambient air quality monitoring stations (CAAQMS) deployed across urban corridors and ecological zones.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Filter & Control Toolbar -->
+  <section class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col gap-space-md">
+    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-space-md">
+      <div class="relative flex-1 max-w-lg">
+        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[18px]">search</span>
+        <input type="text" id="station-page-search" placeholder="Search station name, ward, or sensor ID..." class="w-full pl-10 pr-space-md py-2.5 rounded-lg bg-surface text-on-surface text-body-md focus:outline-none focus:ring-2 focus:ring-secondary/40"/>
+      </div>
+      <div class="flex flex-wrap items-center gap-1.5" id="station-page-zone-pills">
+        <button class="px-3 py-1.5 rounded-full bg-primary text-on-primary font-label-md text-label-md" data-zone="all">All Zones (12)</button>
+        <button class="px-3 py-1.5 rounded-full bg-surface-container text-on-surface-variant hover:bg-surface-container-high font-label-md text-label-md" data-zone="south">South</button>
+        <button class="px-3 py-1.5 rounded-full bg-surface-container text-on-surface-variant hover:bg-surface-container-high font-label-md text-label-md" data-zone="north">North</button>
+        <button class="px-3 py-1.5 rounded-full bg-surface-container text-on-surface-variant hover:bg-surface-container-high font-label-md text-label-md" data-zone="east">East</button>
+        <button class="px-3 py-1.5 rounded-full bg-surface-container text-on-surface-variant hover:bg-surface-container-high font-label-md text-label-md" data-zone="west">West</button>
+        <button class="px-3 py-1.5 rounded-full bg-surface-container text-on-surface-variant hover:bg-surface-container-high font-label-md text-label-md" data-zone="central">Central</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stations Grid -->
+  <section class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-space-md" id="stations-card-grid">
+    <!-- Populated dynamically via JS -->
+  </section>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    let currentZone = 'all';
+
+    function loadStations(zone = 'all', query = null) {
+      let url = `/api/stations/?zone=${zone}`;
+      if (query) url += `&q=${encodeURIComponent(query)}`;
+
+      fetch(url)
+        .then(res => res.json())
+        .then(res => {
+          if (!res.success) return;
+          const grid = document.getElementById('stations-card-grid');
+          grid.innerHTML = '';
+          (res.data.stations || []).forEach(st => {
+            const card = document.createElement('article');
+            card.className = 'bg-surface-container-lowest rounded-xl p-space-lg shadow-sm hover:shadow-md transition-all flex flex-col justify-between group';
+            card.innerHTML = `
+              <div>
+                <div class="flex items-start justify-between gap-2 mb-space-sm">
+                  <div>
+                    <span class="font-label-md text-label-md text-outline block">${st.id} • ${st.zone_label}</span>
+                    <h3 class="font-title-lg text-title-lg text-primary font-semibold leading-tight group-hover:text-secondary transition-colors">${st.name}</h3>
+                    <span class="font-label-md text-label-md text-on-surface-variant">${st.ward}</span>
+                  </div>
+                  <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full ${st.badge_bg || 'bg-amber-100'} ${st.badge_text || 'text-amber-800'} font-label-md text-label-md font-bold whitespace-nowrap">
+                    AQI ${st.aqi}
+                  </span>
+                </div>
+                <div class="grid grid-cols-2 gap-2 my-space-sm py-space-xs">
+                  <div class="bg-surface p-2 rounded-lg">
+                    <span class="font-label-md text-label-md text-outline block">PM2.5</span>
+                    <span class="font-title-md text-title-md text-primary font-bold">${st.pm25} <span class="text-[11px] font-normal text-on-surface-variant">µg/m³</span></span>
+                  </div>
+                  <div class="bg-surface p-2 rounded-lg">
+                    <span class="font-label-md text-label-md text-outline block">PM10</span>
+                    <span class="font-title-md text-title-md text-primary font-bold">${st.pm10} <span class="text-[11px] font-normal text-on-surface-variant">µg/m³</span></span>
+                  </div>
+                </div>
+                <div class="flex flex-col gap-1.5 text-label-md font-label-md text-on-surface-variant pt-space-xs">
+                  <div class="flex items-center justify-between">
+                    <span class="flex items-center gap-1 text-outline"><span class="material-symbols-outlined text-[14px]">thermostat</span>Microclimate</span>
+                    <span class="text-primary font-medium">${st.microclimate}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="pt-space-md mt-space-md border-t border-surface-container-high flex flex-col gap-2">
+                <div class="flex items-center justify-between font-label-md text-label-md">
+                  <span class="inline-flex items-center gap-1 text-secondary">
+                    <span class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span> ${st.status}
+                  </span>
+                  <span class="text-outline">${st.updated}</span>
+                </div>
+                <a href="{% url 'dashboard' %}?station=${st.id}" class="w-full py-2 px-3 rounded-lg bg-surface hover:bg-surface-container font-label-md text-label-md text-primary flex items-center justify-center gap-1.5 transition-colors font-bold">
+                  <span>View Station Dashboard</span>
+                  <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+                </a>
+              </div>
+            `;
+            grid.appendChild(card);
+          });
+        });
+    }
+
+    document.querySelectorAll('#station-page-zone-pills button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#station-page-zone-pills button').forEach(b => {
+          b.className = 'px-3 py-1.5 rounded-full bg-surface-container text-on-surface-variant hover:bg-surface-container-high font-label-md text-label-md';
+        });
+        btn.className = 'px-3 py-1.5 rounded-full bg-primary text-on-primary font-label-md text-label-md';
+        currentZone = btn.getAttribute('data-zone') || 'all';
+        const q = document.getElementById('station-page-search')?.value || '';
+        loadStations(currentZone, q);
+      });
+    });
+
+    document.getElementById('station-page-search')?.addEventListener('input', (e) => {
+      const q = e.target.value.trim();
+      loadStations(currentZone, q);
+    });
+
+    loadStations('all');
+  });
+</script>
+{% endblock %}

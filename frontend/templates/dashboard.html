@@ -1,0 +1,322 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="flex flex-col gap-space-lg pb-space-xl">
+  <!-- Subheader & Station Selector Banner -->
+  <section class="flex flex-col gap-space-sm">
+    <div class="inline-flex items-center gap-2">
+      <span class="w-2 h-2 rounded-full bg-secondary"></span>
+      <span class="font-label-md text-label-md text-secondary tracking-widest uppercase">Real-Time Station Telemetry • CPCB / OpenAQ Synchronized</span>
+    </div>
+    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-space-md bg-surface-container-lowest p-space-lg rounded-xl shadow-sm border border-secondary/10">
+      <div class="max-w-2xl">
+        <h2 class="font-headline-lg text-headline-lg text-primary tracking-tight" id="station-heading-title">Bengaluru Air Quality Dashboard</h2>
+        <p class="font-body-lg text-body-lg text-on-surface-variant mt-1" id="station-description-text">
+          Select a monitoring station below to inspect live AQI ratings, pollutant breakdown, and 1-hour ML predictions.
+        </p>
+      </div>
+
+      <!-- PROMINENT MONITORING STATION SELECTOR -->
+      <div class="flex flex-col gap-1.5 shrink-0 bg-surface-container-high p-space-sm px-space-md rounded-xl border border-outline-variant/50">
+        <label for="station-selector" class="font-label-md text-label-md text-outline uppercase tracking-wider flex items-center gap-1">
+          <span class="material-symbols-outlined text-[16px] text-secondary">cell_tower</span>
+          Monitoring Station
+        </label>
+        <select id="station-selector" class="bg-surface text-primary font-title-lg text-title-lg font-bold py-2 px-3 rounded-lg border border-outline/30 focus:outline-none focus:ring-2 focus:ring-secondary/40 cursor-pointer">
+          <option value="btm-layout" selected>BTM Layout</option>
+          <option value="central-silk-board">Central Silk Board</option>
+          <option value="peenya">Peenya Industrial</option>
+          <option value="cubbon-park">Cubbon Park Grove</option>
+          <option value="jayanagar">Jayanagar 4th Block</option>
+          <option value="hebbal">Hebbal Interchange</option>
+          <option value="kasturi-nagar">Kasturi Nagar</option>
+          <option value="hombegowda-nagar">Hombegowda Nagar</option>
+          <option value="whitefield">Whitefield Export Zone</option>
+          <option value="electronic-city">Electronic City Phase 1</option>
+          <option value="yelahanka">Yelahanka New Town</option>
+          <option value="kengeri">Mysuru Road Kengeri</option>
+        </select>
+      </div>
+    </div>
+  </section>
+
+  <!-- Metric Summary Cards -->
+  <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-space-md">
+    <!-- AQI Card -->
+    <div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col justify-between">
+      <div class="flex items-center justify-between text-on-surface-variant">
+        <span class="font-label-md text-label-md uppercase tracking-wider">Current Air Quality Index</span>
+        <span class="material-symbols-outlined text-tertiary-container text-[20px]">air</span>
+      </div>
+      <div class="my-space-sm flex items-baseline gap-2">
+        <span class="font-data-metric text-data-metric text-primary" id="dash-aqi-val">142</span>
+        <span class="font-label-md text-label-md px-2.5 py-1 rounded-full bg-surface-container-high text-on-surface font-bold" id="dash-aqi-cat">Moderate</span>
+      </div>
+      <div class="text-outline font-label-md text-label-md flex items-center gap-1" id="dash-aqi-sub">
+        <span class="material-symbols-outlined text-[14px]">verified</span> Standard CPCB Index Rating
+      </div>
+    </div>
+
+    <!-- Forecast Card -->
+    <div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col justify-between border border-secondary/20">
+      <div class="flex items-center justify-between text-on-surface-variant">
+        <span class="font-label-md text-label-md uppercase tracking-wider">AI Forecast (Next Hour PM2.5)</span>
+        <span class="material-symbols-outlined text-secondary text-[20px]">auto_awesome</span>
+      </div>
+      <div class="my-space-sm flex items-baseline gap-2">
+        <span class="font-data-metric text-data-metric text-secondary" id="dash-pred-val">76.8</span>
+        <span class="text-title-lg font-title-lg text-outline">µg/m³</span>
+      </div>
+      <div class="text-outline font-label-md text-label-md flex items-center gap-1">
+        <span class="w-1.5 h-1.5 rounded-full bg-secondary"></span> Random Forest Inference • MAE: 4.4 µg/m³
+      </div>
+    </div>
+
+    <!-- Active Station Status Card -->
+    <div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col justify-between">
+      <div class="flex items-center justify-between text-on-surface-variant">
+        <span class="font-label-md text-label-md uppercase tracking-wider">Station Status</span>
+        <span class="material-symbols-outlined text-secondary text-[20px]">sensors</span>
+      </div>
+      <div class="my-space-sm">
+        <div class="font-title-lg text-title-lg text-primary font-bold truncate" id="dash-station-name">BTM Layout</div>
+        <div class="font-label-md text-label-md text-secondary flex items-center gap-1 mt-1" id="dash-station-status">
+          <span class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span> Active • Validated
+        </div>
+      </div>
+      <div class="text-outline font-label-md text-label-md" id="dash-station-ward">Ward 176 - Udupi Garden Lake</div>
+    </div>
+
+    <!-- Microclimate Card -->
+    <div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col justify-between">
+      <div class="flex items-center justify-between text-on-surface-variant">
+        <span class="font-label-md text-label-md uppercase tracking-wider">Atmospheric Conditions</span>
+        <span class="material-symbols-outlined text-primary text-[20px]">thermostat</span>
+      </div>
+      <div class="my-space-sm">
+        <div class="font-title-lg text-title-lg text-primary font-bold" id="dash-temp-rh">28.1°C • 66% RH</div>
+        <div class="font-label-md text-label-md text-on-surface-variant mt-1" id="dash-wind">Wind: 1.9 m/s SE</div>
+      </div>
+      <div class="text-outline font-label-md text-label-md">IMD Bengaluru Observatory</div>
+    </div>
+  </section>
+
+  <!-- Main Chart & Pollutant Grid -->
+  <section class="grid grid-cols-1 lg:grid-cols-12 gap-space-md">
+    <!-- 24h Trend Chart (8 Cols) -->
+    <div class="lg:col-span-8 bg-surface-container-lowest rounded-xl p-space-lg shadow-sm flex flex-col justify-between">
+      <div class="flex items-center justify-between mb-space-md">
+        <div>
+          <h3 class="font-title-lg text-title-lg text-primary font-semibold" id="chart-station-title">BTM Layout — 24-Hour PM2.5 Trend</h3>
+          <span class="font-label-md text-label-md text-outline">Hourly fine particulate density profile for selected station</span>
+        </div>
+        <span class="font-label-md text-label-md px-3 py-1 rounded-full bg-surface-container-high text-on-surface">µg/m³</span>
+      </div>
+      <div class="relative h-64 w-full">
+        <canvas id="chart-dashboard-trend"></canvas>
+      </div>
+    </div>
+
+    <!-- Pollutant Breakdown Grid (4 Cols) -->
+    <div class="lg:col-span-4 bg-surface-container-lowest rounded-xl p-space-lg shadow-sm flex flex-col justify-between">
+      <h3 class="font-title-lg text-title-lg text-primary font-semibold mb-space-sm">Pollutant Matrix</h3>
+      <div class="grid grid-cols-2 gap-space-sm flex-1">
+        <div class="bg-surface p-space-sm rounded-lg flex flex-col justify-between">
+          <span class="font-label-md text-label-md text-outline">PM2.5</span>
+          <span class="font-title-lg text-title-lg text-primary font-bold" id="pol-pm25">72.4 <span class="text-[12px] font-normal text-on-surface-variant">µg/m³</span></span>
+          <span class="font-label-md text-label-md text-secondary">Fine Particulate</span>
+        </div>
+        <div class="bg-surface p-space-sm rounded-lg flex flex-col justify-between">
+          <span class="font-label-md text-label-md text-outline">PM10</span>
+          <span class="font-title-lg text-title-lg text-primary font-bold" id="pol-pm10">118.2 <span class="text-[12px] font-normal text-on-surface-variant">µg/m³</span></span>
+          <span class="font-label-md text-label-md text-on-surface-variant">Respirable Dust</span>
+        </div>
+        <div class="bg-surface p-space-sm rounded-lg flex flex-col justify-between">
+          <span class="font-label-md text-label-md text-outline">NO2</span>
+          <span class="font-title-lg text-title-lg text-primary font-bold" id="pol-no2">32.1 <span class="text-[12px] font-normal text-on-surface-variant">µg/m³</span></span>
+          <span class="font-label-md text-label-md text-on-surface-variant">Vehicular Exhaust</span>
+        </div>
+        <div class="bg-surface p-space-sm rounded-lg flex flex-col justify-between">
+          <span class="font-label-md text-label-md text-outline">SO2</span>
+          <span class="font-title-lg text-title-lg text-primary font-bold" id="pol-so2">14.5 <span class="text-[12px] font-normal text-on-surface-variant">µg/m³</span></span>
+          <span class="font-label-md text-label-md text-on-surface-variant">Industrial Trace</span>
+        </div>
+        <div class="bg-surface p-space-sm rounded-lg flex flex-col justify-between">
+          <span class="font-label-md text-label-md text-outline">CO</span>
+          <span class="font-title-lg text-title-lg text-primary font-bold" id="pol-co">1.2 <span class="text-[12px] font-normal text-on-surface-variant">mg/m³</span></span>
+          <span class="font-label-md text-label-md text-on-surface-variant">Combustion</span>
+        </div>
+        <div class="bg-surface p-space-sm rounded-lg flex flex-col justify-between">
+          <span class="font-label-md text-label-md text-outline">O3</span>
+          <span class="font-title-lg text-title-lg text-primary font-bold" id="pol-o3">28.5 <span class="text-[12px] font-normal text-on-surface-variant">µg/m³</span></span>
+          <span class="font-label-md text-label-md text-on-surface-variant">Ground Ozone</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Interactive Bengaluru Spatial Station Map -->
+  <section class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm flex flex-col gap-space-md">
+    <div class="flex items-center justify-between">
+      <div>
+        <h3 class="font-title-lg text-title-lg text-primary font-semibold">Bengaluru Spatial Station Mesh Map</h3>
+        <span class="font-label-md text-label-md text-outline">Click any station node below to switch the active Dashboard view</span>
+      </div>
+      <span class="font-label-md text-label-md px-3 py-1 rounded-full bg-secondary-container text-on-secondary-container">12 Active Nodes</span>
+    </div>
+    <div class="relative w-full h-64 rounded-xl bg-primary-container/90 overflow-hidden p-space-lg flex items-center justify-center text-on-primary">
+      <div class="absolute inset-0 opacity-10 bg-[radial-gradient(#92ae9e_1px,transparent_1px)] [background-size:16px_16px]"></div>
+      <div class="relative z-10 w-full h-full flex flex-wrap items-center justify-around gap-3 p-2" id="spatial-map-nodes">
+        <button data-station="btm-layout" class="station-node-btn p-3 bg-surface-container-lowest/15 backdrop-blur-md rounded-xl border border-secondary-fixed/40 hover:border-secondary transition-all text-center focus:outline-none">
+          <span class="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block animate-pulse"></span>
+          <div class="font-title-md text-title-md text-surface-bright font-bold">BTM Layout</div>
+          <div class="text-label-md text-amber-200">AQI 142</div>
+        </button>
+        <button data-station="central-silk-board" class="station-node-btn p-3 bg-surface-container-lowest/15 backdrop-blur-md rounded-xl border border-secondary-fixed/40 hover:border-secondary transition-all text-center focus:outline-none">
+          <span class="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block animate-ping"></span>
+          <div class="font-title-md text-title-md text-surface-bright font-bold">Silk Board</div>
+          <div class="text-label-md text-rose-200">AQI 178</div>
+        </button>
+        <button data-station="cubbon-park" class="station-node-btn p-3 bg-surface-container-lowest/15 backdrop-blur-md rounded-xl border border-secondary-fixed/40 hover:border-secondary transition-all text-center focus:outline-none">
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block"></span>
+          <div class="font-title-md text-title-md text-surface-bright font-bold">Cubbon Park</div>
+          <div class="text-label-md text-emerald-200">AQI 68</div>
+        </button>
+        <button data-station="peenya" class="station-node-btn p-3 bg-surface-container-lowest/15 backdrop-blur-md rounded-xl border border-secondary-fixed/40 hover:border-secondary transition-all text-center focus:outline-none">
+          <span class="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block"></span>
+          <div class="font-title-md text-title-md text-surface-bright font-bold">Peenya Ind.</div>
+          <div class="text-label-md text-amber-200">AQI 168</div>
+        </button>
+        <button data-station="jayanagar" class="station-node-btn p-3 bg-surface-container-lowest/15 backdrop-blur-md rounded-xl border border-secondary-fixed/40 hover:border-secondary transition-all text-center focus:outline-none">
+          <span class="w-2.5 h-2.5 rounded-full bg-lime-400 inline-block"></span>
+          <div class="font-title-md text-title-md text-surface-bright font-bold">Jayanagar</div>
+          <div class="text-label-md text-lime-200">AQI 110</div>
+        </button>
+        <button data-station="hebbal" class="station-node-btn p-3 bg-surface-container-lowest/15 backdrop-blur-md rounded-xl border border-secondary-fixed/40 hover:border-secondary transition-all text-center focus:outline-none">
+          <span class="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block"></span>
+          <div class="font-title-md text-title-md text-surface-bright font-bold">Hebbal</div>
+          <div class="text-label-md text-amber-200">AQI 125</div>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Hotspot & Sanctuary Highlights -->
+  <section class="grid grid-cols-1 md:grid-cols-2 gap-space-md">
+    <div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm border-l-4 border-tertiary">
+      <div class="flex items-center justify-between">
+        <span class="font-label-md text-label-md text-tertiary font-bold uppercase tracking-wider flex items-center gap-1">
+          <span class="material-symbols-outlined text-[16px]">warning</span> Stagnation Hotspot
+        </span>
+        <span class="px-2.5 py-0.5 rounded-full bg-tertiary-fixed text-on-tertiary-fixed font-label-md text-label-md">AQI 178 • Poor</span>
+      </div>
+      <h4 class="font-title-lg text-title-lg text-primary font-bold mt-2">Central Silk Board Junction</h4>
+      <p class="font-body-md text-body-md text-on-surface-variant mt-1">Flyover basin stagnation causing elevated micro-plume particulate density.</p>
+    </div>
+
+    <div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm border-l-4 border-secondary">
+      <div class="flex items-center justify-between">
+        <span class="font-label-md text-label-md text-secondary font-bold uppercase tracking-wider flex items-center gap-1">
+          <span class="material-symbols-outlined text-[16px]">park</span> Cleanest Eco-Grove
+        </span>
+        <span class="px-2.5 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-md text-label-md">AQI 68 • Satisfactory</span>
+      </div>
+      <h4 class="font-title-lg text-title-lg text-primary font-bold mt-2">Cubbon Park Eco-Grove</h4>
+      <p class="font-body-md text-body-md text-on-surface-variant mt-1">Urban biosphere canopy density filtering particulates by 24% relative to arterial roads.</p>
+    </div>
+  </section>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    let trendChart = null;
+
+    function fetchDashboardData(stationId) {
+      fetch(`/api/dashboard/live/?station=${stationId}`)
+        .then(res => res.json())
+        .then(res => {
+          if (!res.success) return;
+          const d = res.data;
+          const st = d.selected_station || {};
+          const pred = d.prediction || {};
+
+          // Update Titles & Description
+          document.getElementById('station-heading-title').textContent = `${st.name} Air Quality Dashboard`;
+          document.getElementById('station-description-text').textContent = d.insight_message || st.description;
+
+          // Update AQI & Category Badge
+          document.getElementById('dash-aqi-val').textContent = st.aqi || 142;
+          const catElem = document.getElementById('dash-aqi-cat');
+          catElem.textContent = st.category_label || st.category || 'Moderate';
+          catElem.className = `font-label-md text-label-md px-2.5 py-1 rounded-full font-bold ${st.badge_bg || 'bg-amber-100'} ${st.badge_text || 'text-amber-800'}`;
+
+          // Update Prediction & Station details
+          document.getElementById('dash-pred-val').textContent = pred.prediction ? pred.prediction.toFixed(1) : '76.8';
+          document.getElementById('dash-station-name').textContent = st.name || 'BTM Layout';
+          document.getElementById('dash-station-status').innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span> ${st.status || 'Active'}`;
+          document.getElementById('dash-station-ward').textContent = st.ward || '';
+          document.getElementById('dash-temp-rh').textContent = `${st.temperature || 28.1}°C • ${st.humidity || 66}% RH`;
+          document.getElementById('dash-wind').textContent = `Wind: ${st.wind_speed || 1.9} m/s ${st.wind_direction || 'SE'}`;
+
+          // Update Pollutant Cards
+          document.getElementById('pol-pm25').innerHTML = `${st.pm25 || 72.4} <span class="text-[12px] font-normal text-on-surface-variant">µg/m³</span>`;
+          document.getElementById('pol-pm10').innerHTML = `${st.pm10 || 118.2} <span class="text-[12px] font-normal text-on-surface-variant">µg/m³</span>`;
+          document.getElementById('pol-no2').innerHTML = `${st.no2 || 32.1} <span class="text-[12px] font-normal text-on-surface-variant">µg/m³</span>`;
+          document.getElementById('pol-so2').innerHTML = `${st.so2 || 14.5} <span class="text-[12px] font-normal text-on-surface-variant">µg/m³</span>`;
+          document.getElementById('pol-co').innerHTML = `${st.co || 1.2} <span class="text-[12px] font-normal text-on-surface-variant">mg/m³</span>`;
+          document.getElementById('pol-o3').innerHTML = `${st.o3 || 28.5} <span class="text-[12px] font-normal text-on-surface-variant">µg/m³</span>`;
+
+          // Update 24h Trend Chart
+          document.getElementById('chart-station-title').textContent = `${st.name} — 24-Hour PM2.5 Trend`;
+          const trendData = st.trend_24h || [];
+
+          if (trendChart) trendChart.destroy();
+          const ctx = document.getElementById('chart-dashboard-trend');
+          if (ctx) {
+            trendChart = new Chart(ctx, {
+              type: 'line',
+              data: {
+                labels: trendData.map(t => t.time),
+                datasets: [{
+                  label: 'PM2.5 (µg/m³)',
+                  data: trendData.map(t => t.pm25),
+                  borderColor: '#294236',
+                  backgroundColor: 'rgba(41, 66, 54, 0.08)',
+                  borderWidth: 3,
+                  fill: true,
+                  tension: 0.4
+                }]
+              },
+              options: { responsive: true, maintainAspectRatio: false }
+            });
+          }
+        });
+    }
+
+    // Dropdown change listener
+    const selector = document.getElementById('station-selector');
+    selector?.addEventListener('change', (e) => {
+      fetchDashboardData(e.target.value);
+    });
+
+    // Map Node buttons click listener
+    document.querySelectorAll('.station-node-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const stId = btn.getAttribute('data-station');
+        if (selector && stId) {
+          selector.value = stId;
+          fetchDashboardData(stId);
+        }
+      });
+    });
+
+    // Refresh Data button listener
+    document.getElementById('global-btn-refresh')?.addEventListener('click', () => {
+      if (selector) fetchDashboardData(selector.value);
+    });
+
+    // Initial Load
+    if (selector) fetchDashboardData(selector.value);
+  });
+</script>
+{% endblock %}

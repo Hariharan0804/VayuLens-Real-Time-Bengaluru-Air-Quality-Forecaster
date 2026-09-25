@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="flex flex-col gap-space-lg pb-space-xl">
+  <section class="flex flex-col gap-space-sm">
+    <div class="inline-flex items-center gap-2">
+      <span class="w-2 h-2 rounded-full bg-secondary"></span>
+      <span class="font-label-md text-label-md text-secondary tracking-widest uppercase">Dataset Telemetry Archive</span>
+    </div>
+    <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-space-md">
+      <div>
+        <h2 class="font-headline-lg text-headline-lg text-primary tracking-tight">Historical Air Quality Analysis</h2>
+        <p class="font-body-lg text-body-lg text-on-surface-variant">Aggregated environmental trends from the VayuLens Bengaluru Dataset.</p>
+      </div>
+      <!-- Range Pills -->
+      <div class="flex bg-surface-container-high p-1 rounded-lg self-start sm:self-auto" id="histo-range-pills">
+        <button class="px-3 py-1.5 rounded-md bg-primary text-on-primary font-label-md text-label-md" data-range="7d">7 Days</button>
+        <button class="px-3 py-1.5 rounded-md text-on-surface-variant hover:text-primary font-label-md text-label-md" data-range="30d">30 Days</button>
+        <button class="px-3 py-1.5 rounded-md text-on-surface-variant hover:text-primary font-label-md text-label-md" data-range="90d">90 Days</button>
+        <button class="px-3 py-1.5 rounded-md text-on-surface-variant hover:text-primary font-label-md text-label-md" data-range="all">All Time</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Historical Stat Cards -->
+  <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-space-md">
+    <div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm">
+      <span class="font-label-md text-label-md text-outline uppercase">Average AQI</span>
+      <div class="font-data-metric text-data-metric text-primary my-1" id="histo-avg-aqi">115</div>
+      <span class="font-label-md text-label-md text-secondary">Normalized Mean</span>
+    </div>
+    <div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm">
+      <span class="font-label-md text-label-md text-outline uppercase">Peak Maximum AQI</span>
+      <div class="font-data-metric text-data-metric text-tertiary my-1" id="histo-max-aqi">185</div>
+      <span class="font-label-md text-label-md text-tertiary font-medium">Stagnation Spike</span>
+    </div>
+    <div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm">
+      <span class="font-label-md text-label-md text-outline uppercase">Minimum AQI</span>
+      <div class="font-data-metric text-data-metric text-secondary my-1" id="histo-min-aqi">52</div>
+      <span class="font-label-md text-label-md text-secondary">Optimal Window</span>
+    </div>
+    <div class="bg-surface-container-lowest rounded-xl p-space-md shadow-sm">
+      <span class="font-label-md text-label-md text-outline uppercase">Average PM2.5</span>
+      <div class="font-data-metric text-data-metric text-primary my-1" id="histo-avg-pm25">42.5</div>
+      <span class="font-label-md text-label-md text-outline">µg/m³</span>
+    </div>
+  </section>
+
+  <!-- Historical Trend & Diurnal Cycle Charts -->
+  <section class="grid grid-cols-1 lg:grid-cols-2 gap-space-md">
+    <div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm">
+      <h3 class="font-title-lg text-title-lg text-primary font-semibold mb-space-sm">Daily PM2.5 & AQI Timeline</h3>
+      <div class="relative h-64 w-full">
+        <canvas id="chart-histo-trend"></canvas>
+      </div>
+    </div>
+    <div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm">
+      <h3 class="font-title-lg text-title-lg text-primary font-semibold mb-space-sm">Diurnal 24-Hour Pollution Cycle</h3>
+      <div class="relative h-64 w-full">
+        <canvas id="chart-histo-diurnal"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pollutant Comparison Bar Chart -->
+  <section class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm">
+    <h3 class="font-title-lg text-title-lg text-primary font-semibold mb-space-sm">Mean Pollutant Concentrations Breakdown</h3>
+    <div class="relative h-64 w-full">
+      <canvas id="chart-histo-pollutants"></canvas>
+    </div>
+  </section>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    let chart1 = null, chart2 = null, chart3 = null;
+
+    function loadHistoricalData(range = '7d') {
+      fetch(`/api/historical/?range=${range}`)
+        .then(res => res.json())
+        .then(res => {
+          if (!res.success) return;
+          const d = res.data;
+          const m = d.metrics || {};
+
+          document.getElementById('histo-avg-aqi').textContent = m.average_aqi || 115;
+          document.getElementById('histo-max-aqi').textContent = m.maximum_aqi || 185;
+          document.getElementById('histo-min-aqi').textContent = m.minimum_aqi || 52;
+          document.getElementById('histo-avg-pm25').textContent = m.average_pm25 || 42.5;
+
+          // Trend Chart
+          const dt = d.daily_trend || {};
+          if (chart1) chart1.destroy();
+          const ctx1 = document.getElementById('chart-histo-trend');
+          if (ctx1) {
+            chart1 = new Chart(ctx1, {
+              type: 'line',
+              data: {
+                labels: dt.labels || [],
+                datasets: [{
+                  label: 'PM2.5 (µg/m³)',
+                  data: dt.pm25 || [],
+                  borderColor: '#294236',
+                  backgroundColor: 'rgba(41,66,54,0.06)',
+                  fill: true,
+                  tension: 0.3
+                }]
+              },
+              options: { responsive: true, maintainAspectRatio: false }
+            });
+          }
+
+          // Diurnal Chart
+          const diu = d.hourly_diurnal || [];
+          if (chart2) chart2.destroy();
+          const ctx2 = document.getElementById('chart-histo-diurnal');
+          if (ctx2) {
+            chart2 = new Chart(ctx2, {
+              type: 'line',
+              data: {
+                labels: Array.from({length: 24}, (_, i) => `${i}:00`),
+                datasets: [{
+                  label: '24h Diurnal PM2.5 (µg/m³)',
+                  data: diu,
+                  borderColor: '#491700',
+                  borderWidth: 2,
+                  tension: 0.4
+                }]
+              },
+              options: { responsive: true, maintainAspectRatio: false }
+            });
+          }
+
+          // Pollutants Bar Chart
+          const pols = d.pollutant_averages || {};
+          if (chart3) chart3.destroy();
+          const ctx3 = document.getElementById('chart-histo-pollutants');
+          if (ctx3) {
+            chart3 = new Chart(ctx3, {
+              type: 'bar',
+              data: {
+                labels: Object.keys(pols),
+                datasets: [{
+                  label: 'Average Concentration',
+                  data: Object.values(pols),
+                  backgroundColor: ['#294236', '#4d6548', '#672b0e', '#733517', '#491700', '#2e322c'],
+                  borderRadius: 6
+                }]
+              },
+              options: { responsive: true, maintainAspectRatio: false }
+            });
+          }
+        });
+    }
+
+    document.querySelectorAll('#histo-range-pills button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#histo-range-pills button').forEach(b => {
+          b.className = 'px-3 py-1.5 rounded-md text-on-surface-variant hover:text-primary font-label-md text-label-md';
+        });
+        btn.className = 'px-3 py-1.5 rounded-md bg-primary text-on-primary font-label-md text-label-md';
+        const range = btn.getAttribute('data-range') || '7d';
+        loadHistoricalData(range);
+      });
+    });
+
+    loadHistoricalData('7d');
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="flex flex-col gap-space-lg pb-space-xl">
+  <section class="flex flex-col gap-space-sm max-w-3xl">
+    <div class="inline-flex items-center gap-2">
+      <span class="w-2 h-2 rounded-full bg-secondary"></span>
+      <span class="font-label-md text-label-md text-secondary tracking-widest uppercase">Project Overview</span>
+    </div>
+    <h2 class="font-headline-lg text-headline-lg text-primary tracking-tight">VayuLens — Real-Time Bengaluru Air Quality Forecaster</h2>
+    <p class="font-body-lg text-body-lg text-on-surface-variant leading-relaxed">
+      VayuLens is an intelligent environmental telemetry platform designed to reframe civic atmospheric monitoring in Bengaluru. Combining live OpenAQ API synchronization, machine learning forecasting, and intuitive field-journal telemetry visual designs.
+    </p>
+  </section>
+
+  <!-- System Architecture Grid -->
+  <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-space-md">
+    <div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm">
+      <span class="material-symbols-outlined text-secondary text-[32px] mb-space-xs">cloud_download</span>
+      <h3 class="font-title-lg text-title-lg text-primary font-bold">Data Layer</h3>
+      <p class="font-body-md text-body-md text-on-surface-variant mt-1">OpenAQ API v3 & Continuous Ambient Air Quality Monitoring System (CAAQMS) telemetry.</p>
+    </div>
+    <div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm">
+      <span class="material-symbols-outlined text-secondary text-[32px] mb-space-xs">memory</span>
+      <h3 class="font-title-lg text-title-lg text-primary font-bold">ML Engine</h3>
+      <p class="font-body-md text-body-md text-on-surface-variant mt-1">Scikit-learn RandomForestRegressor predicting next-hour PM2.5 with 86.2% R² accuracy.</p>
+    </div>
+    <div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm">
+      <span class="material-symbols-outlined text-secondary text-[32px] mb-space-xs">dns</span>
+      <h3 class="font-title-lg text-title-lg text-primary font-bold">Django REST API</h3>
+      <p class="font-body-md text-body-md text-on-surface-variant mt-1">Python Django REST Framework delivering structured, low-latency JSON telemetry.</p>
+    </div>
+    <div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm">
+      <span class="material-symbols-outlined text-secondary text-[32px] mb-space-xs">palette</span>
+      <h3 class="font-title-lg text-title-lg text-primary font-bold">Stitch Frontend</h3>
+      <p class="font-body-md text-body-md text-on-surface-variant mt-1">Tailwind CSS & Chart.js rendering responsive field-journal environmental visuals.</p>
+    </div>
+  </section>
+</div>
+{% endblock %}

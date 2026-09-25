@@ -1,0 +1,268 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <meta content="web_dashboard" name="shell-type"/>
+  <title>VayuLens — {{ page_title|default:"Real-Time Bengaluru Air Quality Forecaster" }}</title>
+
+  <!-- Google Fonts & Material Symbols -->
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "background": "#f8faf1",
+            "error": "#ba1a1a",
+            "on-surface": "#191d17",
+            "on-error": "#ffffff",
+            "primary-fixed": "#cce9d8",
+            "on-tertiary-fixed-variant": "#733517",
+            "on-secondary": "#ffffff",
+            "surface-container-highest": "#e0e4db",
+            "on-surface-variant": "#424844",
+            "primary": "#132c21",
+            "surface-tint": "#4a6457",
+            "tertiary-fixed": "#ffdbcd",
+            "surface-variant": "#e0e4db",
+            "primary-container": "#294236",
+            "outline": "#727974",
+            "on-primary-fixed": "#062016",
+            "on-secondary-fixed": "#0b200a",
+            "on-tertiary-fixed": "#360f00",
+            "on-primary-container": "#92ae9e",
+            "on-background": "#191d17",
+            "on-error-container": "#93000a",
+            "surface-container-low": "#f2f5ec",
+            "surface-container-high": "#e6e9e0",
+            "on-tertiary": "#ffffff",
+            "outline-variant": "#c2c8c2",
+            "surface-container": "#ecefe6",
+            "secondary-fixed": "#cfeac6",
+            "tertiary": "#491700",
+            "secondary-fixed-dim": "#b3ceab",
+            "on-primary": "#ffffff",
+            "on-primary-fixed-variant": "#334c40",
+            "surface-bright": "#f8faf1",
+            "inverse-on-surface": "#eff2e9",
+            "on-tertiary-container": "#e8926d",
+            "tertiary-container": "#672b0e",
+            "surface-container-lowest": "#ffffff",
+            "surface-dim": "#d8dbd2",
+            "inverse-primary": "#b1cdbd",
+            "inverse-surface": "#2e322c",
+            "primary-fixed-dim": "#b1cdbd",
+            "surface": "#f8faf1",
+            "tertiary-fixed-dim": "#ffb597",
+            "on-secondary-container": "#51694c",
+            "secondary": "#4d6548",
+            "secondary-container": "#cce7c3",
+            "error-container": "#ffdad6",
+            "on-secondary-fixed-variant": "#364c32"
+          },
+          borderRadius: {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          spacing: {
+            "space-md": "1rem",
+            "space-sm": "0.5rem",
+            "gutter": "1.5rem",
+            "space-xs": "0.25rem",
+            "space-xl": "2.5rem",
+            "gutter-mobile": "1rem",
+            "space-lg": "1.5rem",
+            "margin": "3rem",
+            "margin-mobile": "1.25rem"
+          },
+          fontFamily: {
+            "display-lg": ["Newsreader", "serif"],
+            "data-metric": ["Manrope", "sans-serif"],
+            "headline-lg": ["Newsreader", "serif"],
+            "body-md": ["Manrope", "sans-serif"],
+            "headline-lg-mobile": ["Newsreader", "serif"],
+            "title-lg": ["Manrope", "sans-serif"],
+            "label-lg": ["Manrope", "sans-serif"],
+            "headline-sm": ["Newsreader", "serif"],
+            "title-md": ["Manrope", "sans-serif"],
+            "display-lg-mobile": ["Newsreader", "serif"],
+            "body-lg": ["Manrope", "sans-serif"],
+            "headline-md": ["Newsreader", "serif"],
+            "label-md": ["Manrope", "sans-serif"]
+          },
+          fontSize: {
+            "display-lg": ["56px", { "lineHeight": "64px", "letterSpacing": "-0.02em", "fontWeight": "400" }],
+            "data-metric": ["48px", { "lineHeight": "52px", "letterSpacing": "-0.03em", "fontWeight": "700" }],
+            "headline-lg": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.01em", "fontWeight": "500" }],
+            "body-md": ["14px", { "lineHeight": "22px", "fontWeight": "400" }],
+            "headline-lg-mobile": ["28px", { "lineHeight": "34px", "letterSpacing": "-0.01em", "fontWeight": "500" }],
+            "title-lg": ["18px", { "lineHeight": "24px", "fontWeight": "600" }],
+            "label-lg": ["13px", { "lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "600" }],
+            "headline-sm": ["20px", { "lineHeight": "26px", "fontWeight": "600" }],
+            "title-md": ["15px", { "lineHeight": "20px", "fontWeight": "600" }],
+            "display-lg-mobile": ["38px", { "lineHeight": "44px", "letterSpacing": "-0.015em", "fontWeight": "400" }],
+            "body-lg": ["16px", { "lineHeight": "26px", "fontWeight": "400" }],
+            "headline-md": ["26px", { "lineHeight": "32px", "fontWeight": "500" }],
+            "label-md": ["11px", { "lineHeight": "14px", "letterSpacing": "0.04em", "fontWeight": "600" }]
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    @layer base {
+      html, body { margin: 0; padding: 0; }
+      body { overscroll-behavior: none; }
+    }
+    ::-webkit-scrollbar { display: none; }
+  </style>
+</head>
+<body class="bg-surface font-body-md text-on-surface antialiased">
+
+  <!-- SIDEBAR NAVIGATION -->
+  <aside class="fixed left-0 top-0 h-full w-72 bg-primary-container text-on-primary z-50 flex flex-col justify-between shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
+    <div class="flex flex-col flex-1 min-h-0">
+      <!-- Logo Banner -->
+      <div class="h-20 px-space-lg flex items-center gap-space-sm bg-primary/40">
+        <div class="w-10 h-10 rounded-xl bg-surface-tint/30 flex items-center justify-center text-surface-bright shrink-0">
+          <span class="material-symbols-outlined text-[24px]">air</span>
+        </div>
+        <div class="flex flex-col">
+          <span class="font-title-md text-title-md text-surface-bright tracking-tight leading-none">VayuLens</span>
+          <span class="font-label-md text-label-md text-on-primary-container tracking-wider uppercase mt-space-xs">Bengaluru Air Intel</span>
+        </div>
+      </div>
+
+      <!-- Navigation Links using Real Django Template URLs -->
+      <div class="px-space-md py-space-lg flex-1 overflow-y-auto">
+        <div class="px-space-sm mb-space-sm font-label-md text-label-md text-on-primary-container uppercase tracking-wider">Telemetry Systems</div>
+        <nav class="flex flex-col gap-1" id="main-nav">
+          <a class="nav-item flex items-center gap-space-sm px-space-md py-space-sm rounded-lg transition-colors {% if active_page == 'dashboard' %}bg-surface-tint/30 text-surface-bright font-title-md{% else %}text-on-primary-container hover:bg-surface-tint/20 hover:text-surface-bright{% endif %}" href="{% url 'dashboard' %}">
+            <span class="material-symbols-outlined text-[20px]">dashboard</span>
+            <span class="font-title-md text-title-md">Dashboard</span>
+          </a>
+          <a class="nav-item flex items-center gap-space-sm px-space-md py-space-sm rounded-lg transition-colors {% if active_page == 'monitoring' %}bg-surface-tint/30 text-surface-bright font-title-md{% else %}text-on-primary-container hover:bg-surface-tint/20 hover:text-surface-bright{% endif %}" href="{% url 'monitoring' %}">
+            <span class="material-symbols-outlined text-[20px]">sensors</span>
+            <span class="font-title-md text-title-md">Live Monitoring</span>
+          </a>
+          <a class="nav-item flex items-center gap-space-sm px-space-md py-space-sm rounded-lg transition-colors {% if active_page == 'forecast' %}bg-surface-tint/30 text-surface-bright font-title-md{% else %}text-on-primary-container hover:bg-surface-tint/20 hover:text-surface-bright{% endif %}" href="{% url 'forecast' %}">
+            <span class="material-symbols-outlined text-[20px]">auto_awesome</span>
+            <span class="font-title-md text-title-md">Forecast</span>
+          </a>
+          <a class="nav-item flex items-center gap-space-sm px-space-md py-space-sm rounded-lg transition-colors {% if active_page == 'historical' %}bg-surface-tint/30 text-surface-bright font-title-md{% else %}text-on-primary-container hover:bg-surface-tint/20 hover:text-surface-bright{% endif %}" href="{% url 'historical' %}">
+            <span class="material-symbols-outlined text-[20px]">history</span>
+            <span class="font-title-md text-title-md">Historical Analysis</span>
+          </a>
+          <a class="nav-item flex items-center gap-space-sm px-space-md py-space-sm rounded-lg transition-colors {% if active_page == 'stations' %}bg-surface-tint/30 text-surface-bright font-title-md{% else %}text-on-primary-container hover:bg-surface-tint/20 hover:text-surface-bright{% endif %}" href="{% url 'stations' %}">
+            <span class="material-symbols-outlined text-[20px]">cell_tower</span>
+            <span class="font-title-md text-title-md">Stations</span>
+          </a>
+          <a class="nav-item flex items-center gap-space-sm px-space-md py-space-sm rounded-lg transition-colors {% if active_page == 'model_insights' %}bg-surface-tint/30 text-surface-bright font-title-md{% else %}text-on-primary-container hover:bg-surface-tint/20 hover:text-surface-bright{% endif %}" href="{% url 'model_insights' %}">
+            <span class="material-symbols-outlined text-[20px]">memory</span>
+            <span class="font-title-md text-title-md">Model Insights</span>
+          </a>
+          <a class="nav-item flex items-center gap-space-sm px-space-md py-space-sm rounded-lg transition-colors {% if active_page == 'about' %}bg-surface-tint/30 text-surface-bright font-title-md{% else %}text-on-primary-container hover:bg-surface-tint/20 hover:text-surface-bright{% endif %}" href="{% url 'about' %}">
+            <span class="material-symbols-outlined text-[20px]">eco</span>
+            <span class="font-title-md text-title-md">About</span>
+          </a>
+        </nav>
+      </div>
+    </div>
+
+    <!-- AI Model Widget Footer -->
+    <div class="p-space-md m-space-md rounded-xl bg-primary/60">
+      <div class="flex items-center justify-between mb-space-xs">
+        <span class="font-label-md text-label-md text-on-primary-container uppercase tracking-wider">AI Engine</span>
+        <span class="inline-flex items-center gap-1 font-label-md text-label-md text-secondary-fixed">
+          <span class="w-1.5 h-1.5 rounded-full bg-secondary-fixed animate-pulse"></span>Online
+        </span>
+      </div>
+      <div class="font-title-md text-title-md text-surface-bright mb-space-xs">Random Forest Regressor</div>
+      <div class="flex items-center justify-between font-label-md text-label-md text-on-primary-container">
+        <span>Latency</span>
+        <span class="text-surface-bright font-title-md">14ms inference</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN WRAPPER -->
+  <div class="pl-72">
+    <!-- HEADER BAR -->
+    <header class="fixed top-0 left-72 right-0 h-20 bg-surface/90 backdrop-blur-xl z-40 shadow-[0_1px_8px_rgba(41,66,54,0.04)]">
+      <div class="w-full h-full px-space-xl flex items-center justify-between">
+        <div class="flex items-center gap-space-lg">
+          <div class="flex flex-col">
+            <div class="flex items-center gap-space-sm">
+              <h1 class="font-headline-sm text-headline-sm text-on-surface" id="header-title">{{ page_title }}</h1>
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-md text-label-md" id="connection-status-pip">
+                <span class="w-1.5 h-1.5 rounded-full bg-secondary animate-ping"></span>LIVE API CONNECTED
+              </span>
+            </div>
+            <span class="font-body-md text-body-md text-on-surface-variant" id="header-subtitle">{{ page_subtitle }}</span>
+          </div>
+          <div class="hidden xl:flex items-center gap-space-md pl-space-lg">
+            <div class="inline-flex items-center gap-1 text-on-surface-variant font-label-lg text-label-lg">
+              <span class="material-symbols-outlined text-[16px]">location_on</span>Bengaluru, Karnataka
+            </div>
+            <div class="inline-flex items-center gap-1 text-outline font-label-md text-label-md" id="header-updated-time">
+              <span class="material-symbols-outlined text-[14px]">schedule</span>Updated Just Now
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-space-md">
+          <button id="global-btn-refresh" class="inline-flex items-center gap-space-xs px-space-md py-space-sm rounded-lg bg-surface-container-high text-on-surface hover:bg-surface-container-highest transition-colors font-title-md text-title-md" type="button">
+            <span class="material-symbols-outlined text-[18px]">sync</span>
+            <span>Refresh Data</span>
+          </button>
+          <button aria-label="Notifications" class="relative p-space-sm rounded-lg bg-surface-container-high text-on-surface hover:bg-surface-container-highest transition-colors" type="button">
+            <span class="material-symbols-outlined text-[20px]">notifications</span>
+            <span class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-tertiary-container"></span>
+          </button>
+          <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-on-primary">
+            <span class="material-symbols-outlined text-[18px]">person</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- CONTENT BODY -->
+    <main class="relative pt-20 w-full min-h-screen bg-surface px-space-xl py-space-lg">
+      {% block content %}
+      {% endblock %}
+    </main>
+  </div>
+
+  <script>
+    // Global Health Check
+    fetch('/api/health/')
+      .then(res => res.json())
+      .then(data => {
+        const pip = document.getElementById('connection-status-pip');
+        if (data.success && data.data.status === 'healthy') {
+          pip.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-secondary animate-ping"></span>LIVE API CONNECTED`;
+        } else {
+          pip.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-error"></span>API OFFLINE`;
+        }
+      })
+      .catch(() => {
+        const pip = document.getElementById('connection-status-pip');
+        if (pip) pip.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-error"></span>API OFFLINE`;
+      });
+  </script>
+</body>
+</html>
