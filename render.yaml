@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: vayulens
+    env: python
+    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate
+    startCommand: gunicorn config.wsgi:application
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: DEBUG
+        value: "False"
+      - key: OPENAQ_API_KEY
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
