@@ -7,6 +7,9 @@ def create_file(path, content):
     os.makedirs(os.path.dirname(full_path), exist_ok=True)
     with open(full_path, 'w', encoding='utf-8') as f:
         f.write(content)
+    print(f"[CREATED] {path}")
+
+
 
 # config/settings.py
 settings_content = """import os
@@ -232,3 +235,6 @@ class ModelInsightsView(BaseAPIView):
             return self.error_response("Model insights unavailable")
 """
 create_file('api/views.py', api_views_content)
+
+print("\nAll backend files created successfully!")
+

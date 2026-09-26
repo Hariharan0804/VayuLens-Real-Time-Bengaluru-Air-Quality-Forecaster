@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 from datetime import datetime
-from .openaq_service import OpenAQService
+from .air_quality_service import AirQualityService
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 DATASET_PATH = BASE_DIR / "data" / "VayuLens_Training_Dataset.csv"
@@ -39,9 +39,9 @@ class HistoricalService:
             max_pm25 = float(pm25_series.max()) if not pm25_series.empty else 110.0
             min_pm25 = float(pm25_series.min()) if not pm25_series.empty else 12.0
 
-            avg_aqi = OpenAQService.calculate_aqi(avg_pm25)
-            max_aqi = OpenAQService.calculate_aqi(max_pm25)
-            min_aqi = OpenAQService.calculate_aqi(min_pm25)
+            avg_aqi = AirQualityService.calculate_aqi(avg_pm25)
+            max_aqi = AirQualityService.calculate_aqi(max_pm25)
+            min_aqi = AirQualityService.calculate_aqi(min_pm25)
 
             # Daily Trend (sample ~14 data points or days for smooth Chart.js line)
             step = max(1, len(subset) // 14)
@@ -57,7 +57,8 @@ class HistoricalService:
                 p25 = float(row.get("PM2.5 (µg/m³)", 40.0))
                 daily_labels.append(label)
                 daily_pm25.append(round(p25, 1))
-                daily_aqi.append(OpenAQService.calculate_aqi(p25))
+                daily_aqi.append(AirQualityService.calculate_aqi(p25))
+
 
             # Hourly Diurnal Pattern (averages grouped by 'Hour' column if available)
             hourly_pattern = []

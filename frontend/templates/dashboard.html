@@ -316,7 +316,14 @@
     });
 
     // Initial Load
+    const urlParams = new URLSearchParams(window.location.search);
+    const paramStation = urlParams.get('station');
+    if (paramStation && selector) {
+      selector.value = paramStation;
+    }
+
     if (selector) fetchDashboardData(selector.value);
+
   });
 </script>
 {% endblock %}

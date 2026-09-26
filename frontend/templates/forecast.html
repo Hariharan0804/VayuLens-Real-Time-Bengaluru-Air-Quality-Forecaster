@@ -71,7 +71,11 @@
     let impChart = null;
     let compChart = null;
 
-    fetch('/api/prediction/')
+    const urlParams = new URLSearchParams(window.location.search);
+    const stParam = urlParams.get('station') || 'btm-layout';
+
+    fetch(`/api/prediction/?station=${stParam}`)
+
       .then(res => res.json())
       .then(res => {
         if (!res.success) return;
