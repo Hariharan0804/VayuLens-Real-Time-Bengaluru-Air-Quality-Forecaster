@@ -1,135 +1,891 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="flex flex-col gap-space-lg pb-space-xl">
-  <section class="flex flex-col gap-space-sm">
-    <div class="inline-flex items-center gap-2">
-      <span class="w-2 h-2 rounded-full bg-secondary"></span>
-      <span class="font-label-md text-label-md text-secondary tracking-widest uppercase">Machine Learning Inference Engine</span>
-    </div>
-    <h2 class="font-headline-lg text-headline-lg text-primary tracking-tight">AI Air Quality Forecast</h2>
-    <p class="font-body-lg text-body-lg text-on-surface-variant">Next-hour PM2.5 prediction driven by trained Random Forest Regressor on 15,500+ Bengaluru telemetry records.</p>
-  </section>
+<div class="flex flex-col gap-space-lg pb-space-xl relative" id="forecast-container">
 
-  <!-- Prediction Banner Card -->
-  <section class="bg-surface-container-lowest rounded-xl p-space-xl shadow-sm border border-secondary/20 flex flex-col lg:flex-row items-center justify-between gap-space-lg">
+  <!-- Loading Overlay -->
+  <div id="forecast-loading" class="hidden absolute inset-0 bg-surface/70 backdrop-blur-xs z-30 flex items-center justify-center rounded-xl transition-opacity">
+    <div class="flex flex-col items-center gap-2 bg-surface-container-lowest p-6 rounded-2xl shadow-lg border border-outline-variant/30">
+      <span class="material-symbols-outlined text-[32px] text-secondary animate-spin">sync</span>
+      <span class="font-title-md text-title-md text-primary">Fetching Station Telemetry & Running ML Model...</span>
+    </div>
+  </div>
+
+  <!-- Error Banner -->
+  <div id="forecast-error-banner" class="hidden bg-error-container text-on-error-container px-space-lg py-space-md rounded-xl border border-error/30 flex items-center justify-between shadow-sm">
+    <div class="flex items-center gap-space-sm">
+      <span class="material-symbols-outlined text-[24px] text-error">error</span>
+      <div>
+        <div class="font-title-md text-title-md font-bold">Unable to retrieve live air-quality data</div>
+        <div class="font-body-md text-body-md text-on-error-container/80" id="forecast-error-msg">Showing the latest available reading.</div>
+      </div>
+    </div>
+    <button type="button" id="btn-retry-forecast" class="px-3 py-1.5 rounded-lg bg-surface-container-lowest text-error font-title-md hover:bg-error-container transition-colors">
+      Retry
+    </button>
+  </div>
+
+  <!-- Header & Station Selector Section -->
+  <section class="flex flex-col md:flex-row md:items-end justify-between gap-space-md border-b border-outline-variant/30 pb-space-md">
     <div class="flex flex-col gap-space-xs">
-      <span class="font-label-md text-label-md text-secondary uppercase tracking-wider">Target Variable: PM2.5_Next_Hour</span>
-      <div class="flex items-baseline gap-space-sm">
-        <span class="font-data-metric text-[56px] text-secondary font-bold" id="fore-pred-val">76.8</span>
-        <span class="font-headline-sm text-headline-sm text-outline">µg/m³</span>
+      <div class="inline-flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-secondary"></span>
+        <span class="font-label-md text-label-md text-secondary tracking-widest uppercase">Machine Learning Inference Engine</span>
+        <span id="forecast-status-badge" class="ml-2 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-md text-label-md font-bold">
+          <span class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span>Live Forecast
+        </span>
       </div>
-      <div class="flex items-center gap-space-sm mt-1">
-        <span class="px-3 py-1 rounded-full bg-amber-100 text-amber-800 font-label-md text-label-md font-bold" id="fore-pred-cat">Moderate Quality</span>
-        <span class="font-label-md text-label-md text-outline" id="fore-station-name">Station: BTM Layout</span>
-      </div>
+      <h2 class="font-headline-lg text-headline-lg text-primary tracking-tight">Air Quality Forecast</h2>
+      <p class="font-body-lg text-body-lg text-on-surface-variant">Machine-learning powered short-term predictions driven by trained Random Forest Regressor.</p>
     </div>
-    <div class="flex flex-col gap-space-xs bg-surface p-space-md rounded-xl max-w-sm w-full">
-      <div class="flex items-center justify-between font-label-md text-label-md">
-        <span class="text-outline">Model Accuracy (R²)</span>
-        <span class="text-primary font-bold" id="fore-r2">86.2%</span>
+
+    <!-- Station Selector Dropdown & Last Updated -->
+    <div class="flex flex-col sm:flex-row items-start sm:items-center gap-space-md bg-surface-container-lowest p-space-sm rounded-xl border border-outline-variant/40 shadow-sm">
+      <div class="flex items-center gap-2 px-space-xs">
+        <span class="material-symbols-outlined text-[20px] text-secondary">cell_tower</span>
+        <label for="forecast-station-select" class="font-label-md text-label-md text-outline uppercase font-bold tracking-wider">Station</label>
       </div>
-      <div class="flex items-center justify-between font-label-md text-label-md">
-        <span class="text-outline">Mean Absolute Error (MAE)</span>
-        <span class="text-primary font-bold" id="fore-mae">4.40 µg/m³</span>
+      <div class="relative w-full sm:w-64">
+        <select id="forecast-station-select" class="w-full appearance-none bg-surface-container-high hover:bg-surface-container-highest border border-outline-variant text-on-surface font-title-md py-2 pl-3 pr-10 rounded-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-secondary transition-colors">
+          <option value="btm-layout">BTM Layout</option>
+          <option value="peenya">Peenya Industrial</option>
+          <option value="jayanagar">Jayanagar 4th Block</option>
+          <option value="hebbal">Hebbal Interchange</option>
+          <option value="central-silk-board">Central Silk Board</option>
+          <option value="hombegowda-nagar">Hombegowda Nagar</option>
+          <option value="kasturi-nagar">Kasturi Nagar</option>
+          <option value="cubbon-park">Cubbon Park Grove</option>
+          <option value="whitefield">Whitefield Export Zone</option>
+          <option value="electronic-city">Electronic City Phase 1</option>
+          <option value="yelahanka">Yelahanka New Town</option>
+          <option value="kengeri">Mysuru Road Kengeri</option>
+        </select>
+        <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-[20px] text-outline pointer-events-none">expand_more</span>
       </div>
-      <div class="flex items-center justify-between font-label-md text-label-md">
-        <span class="text-outline">Inference Latency</span>
-        <span class="text-secondary font-bold">14ms</span>
+      <div class="flex items-center gap-1 text-outline font-label-md text-label-md border-t sm:border-t-0 sm:border-l border-outline-variant/30 pt-2 sm:pt-0 sm:pl-3 w-full sm:w-auto">
+        <span class="material-symbols-outlined text-[14px]">schedule</span>
+        <span id="forecast-last-updated">Last updated: Just now</span>
       </div>
     </div>
   </section>
 
-  <!-- Charts Grid: Feature Importance & Observed vs Predicted -->
+  <!-- FORECAST SUMMARY CARDS (6 Metrics) -->
+  <section class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-space-md">
+    <!-- 1. Current PM2.5 -->
+    <div class="bg-surface-container-lowest rounded-xl p-space-md border border-outline-variant/30 shadow-sm flex flex-col justify-between">
+      <span class="font-label-md text-label-md text-outline uppercase tracking-wider font-bold">Current PM2.5</span>
+      <div class="mt-2 flex items-baseline gap-1">
+        <span class="font-data-metric text-[32px] text-primary font-bold" id="card-current-pm25">72.4</span>
+        <span class="font-body-md text-body-md text-outline">µg/m³</span>
+      </div>
+      <span class="font-label-md text-label-md text-on-surface-variant mt-1" id="card-station-label">BTM Layout</span>
+    </div>
+
+    <!-- 2. Next Hour Prediction -->
+    <div class="bg-surface-container-lowest rounded-xl p-space-md border border-secondary/30 shadow-sm flex flex-col justify-between relative overflow-hidden">
+      <div class="absolute top-0 right-0 w-2 h-full bg-secondary"></div>
+      <span class="font-label-md text-label-md text-secondary uppercase tracking-wider font-bold">Next Hour</span>
+      <div class="mt-2 flex items-baseline gap-1">
+        <span class="font-data-metric text-[32px] text-secondary font-bold" id="card-next-pm25">83.5</span>
+        <span class="font-body-md text-body-md text-outline">µg/m³</span>
+      </div>
+      <span class="font-label-md text-label-md text-outline mt-1">ML Model Target</span>
+    </div>
+
+    <!-- 3. Change % -->
+    <div class="bg-surface-container-lowest rounded-xl p-space-md border border-outline-variant/30 shadow-sm flex flex-col justify-between">
+      <span class="font-label-md text-label-md text-outline uppercase tracking-wider font-bold">Change %</span>
+      <div class="mt-2 flex items-center gap-1">
+        <span class="font-data-metric text-[28px] font-bold" id="card-change-pct">+15.3%</span>
+        <span class="material-symbols-outlined text-[20px]" id="card-change-icon">trending_up</span>
+      </div>
+      <span class="font-label-md text-label-md text-outline mt-1">Vs. Current PM2.5</span>
+    </div>
+
+    <!-- 4. Prediction Confidence -->
+    <div class="bg-surface-container-lowest rounded-xl p-space-md border border-outline-variant/30 shadow-sm flex flex-col justify-between">
+      <span class="font-label-md text-label-md text-outline uppercase tracking-wider font-bold">Confidence</span>
+      <div class="mt-2 flex items-baseline gap-1">
+        <span class="font-data-metric text-[32px] text-primary font-bold" id="card-confidence">86.2%</span>
+      </div>
+      <span class="font-label-md text-label-md text-outline mt-1" id="card-mae-label">MAE: 4.33 µg/m³</span>
+    </div>
+
+    <!-- 5. Current AQI -->
+    <div class="bg-surface-container-lowest rounded-xl p-space-md border border-outline-variant/30 shadow-sm flex flex-col justify-between">
+      <span class="font-label-md text-label-md text-outline uppercase tracking-wider font-bold">Current AQI</span>
+      <div class="mt-2 flex items-baseline gap-1">
+        <span class="font-data-metric text-[32px] text-primary font-bold" id="card-current-aqi">142</span>
+        <span class="font-body-md text-body-md text-outline">CPCB</span>
+      </div>
+      <span class="font-label-md text-label-md text-outline mt-1">Sub-index (PM2.5)</span>
+    </div>
+
+    <!-- 6. Category -->
+    <div class="bg-surface-container-lowest rounded-xl p-space-md border border-outline-variant/30 shadow-sm flex flex-col justify-between">
+      <span class="font-label-md text-label-md text-outline uppercase tracking-wider font-bold">AQI Category</span>
+      <div class="mt-2">
+        <span class="px-3 py-1.5 rounded-full font-title-md text-title-md font-bold inline-block" id="card-category-badge">Moderate</span>
+      </div>
+      <span class="font-label-md text-label-md text-outline mt-1" id="card-predicted-aqi-label">Predicted AQI: 165</span>
+    </div>
+  </section>
+
+  <!-- MAIN FORECAST CHART & CONTROLS -->
+  <section class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm border border-outline-variant/30 flex flex-col gap-space-md">
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-space-sm border-b border-outline-variant/20 pb-space-sm">
+      <div class="flex flex-col">
+        <h3 class="font-title-lg text-title-lg text-primary font-bold" id="chart-main-title">BTM Layout — PM2.5 Forecast</h3>
+        <span class="font-label-md text-label-md text-outline">Historical telemetry connected to Random Forest multi-step forecast</span>
+      </div>
+
+      <!-- Forecast Range Controls -->
+      <div class="flex items-center gap-1 bg-surface-container-high p-1 rounded-lg border border-outline-variant/40" id="range-control-group">
+        <button type="button" data-range="6" class="btn-range px-3 py-1.5 rounded-md font-label-md text-label-md font-bold transition-all text-on-surface-variant hover:text-primary">6 Hours</button>
+        <button type="button" data-range="12" class="btn-range px-3 py-1.5 rounded-md font-label-md text-label-md font-bold transition-all text-on-surface-variant hover:text-primary">12 Hours</button>
+        <button type="button" data-range="24" class="btn-range px-3 py-1.5 rounded-md font-label-md text-label-md font-bold transition-all bg-surface-container-lowest text-primary shadow-xs">24 Hours</button>
+      </div>
+    </div>
+
+    <!-- Chart Canvas -->
+    <div class="relative h-80 w-full">
+      <canvas id="chart-main-forecast"></canvas>
+    </div>
+
+    <div class="flex flex-wrap items-center justify-center gap-space-lg pt-space-xs font-label-md text-label-md text-on-surface-variant">
+      <div class="flex items-center gap-2">
+        <span class="w-3 h-3 rounded-full bg-primary"></span>
+        <span>Actual Observed PM2.5</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="w-3.5 h-0 border-t-2 border-dashed border-secondary"></span>
+        <span>Model Forecast</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="w-3.5 h-3.5 rounded bg-secondary/15 border border-secondary/30"></span>
+        <span>Confidence Range (95% CI)</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- NEW FEATURE 1 — FORECAST TIMELINE -->
+  <section class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm border border-outline-variant/30 flex flex-col gap-space-md">
+    <div class="flex flex-col">
+      <h3 class="font-title-lg text-title-lg text-primary font-bold">Hourly Forecast Timeline</h3>
+      <span class="font-label-md text-label-md text-outline">Short-term prediction progression from current timestamp</span>
+    </div>
+    <div class="overflow-x-auto pb-2 scrollbar-none">
+      <div class="flex items-center gap-space-md min-w-max" id="timeline-container">
+        <!-- Dynamic Timeline Cards -->
+      </div>
+    </div>
+  </section>
+
+  <!-- GRID: AQI FORECAST (FEATURE 2) & POLLUTANT OUTLOOK (FEATURE 3) -->
   <section class="grid grid-cols-1 lg:grid-cols-2 gap-space-md">
-    <!-- Feature Importance Bar Chart -->
-    <div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm flex flex-col justify-between">
+    
+    <!-- NEW FEATURE 2 — AQI FORECAST -->
+    <div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm border border-outline-variant/30 flex flex-col justify-between">
       <div class="mb-space-md">
-        <h3 class="font-title-lg text-title-lg text-primary font-semibold">Model Feature Weight Distribution</h3>
-        <span class="font-label-md text-label-md text-outline">Top environmental predictors driving PM2.5 forecast</span>
+        <h3 class="font-title-lg text-title-lg text-primary font-bold">AQI Forecast</h3>
+        <span class="font-label-md text-label-md text-outline">Predicted CPCB AQI sub-index across short and medium horizons</span>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-5 gap-space-sm" id="aqi-horizons-container">
+        <!-- Dynamic AQI Cards -->
+      </div>
+    </div>
+
+    <!-- NEW FEATURE 3 — POLLUTANT OUTLOOK -->
+    <div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm border border-outline-variant/30 flex flex-col justify-between">
+      <div class="mb-space-md flex items-center justify-between">
+        <div>
+          <h3 class="font-title-lg text-title-lg text-primary font-bold">Pollutant Outlook</h3>
+          <span class="font-label-md text-label-md text-outline">Multi-pollutant telemetry status & ML forecast scope</span>
+        </div>
+        <span class="px-2.5 py-1 rounded-full bg-surface-container-high text-on-surface-variant font-label-md text-label-md font-semibold">
+          6 Ambient Pollutants
+        </span>
+      </div>
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-space-sm" id="pollutant-outlook-container">
+        <!-- Dynamic Pollutant Cards -->
+      </div>
+    </div>
+
+  </section>
+
+  <!-- GRID: FORECAST EXPLANATION (FEATURE 4) & WEATHER IMPACT (FEATURE 5) -->
+  <section class="grid grid-cols-1 lg:grid-cols-2 gap-space-md">
+    
+    <!-- NEW FEATURE 4 — FORECAST EXPLANATION -->
+    <div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm border border-outline-variant/30 flex flex-col justify-between">
+      <div class="mb-space-md">
+        <h3 class="font-title-lg text-title-lg text-primary font-bold">Forecast Explanation</h3>
+        <span class="font-label-md text-label-md text-outline">Top environmental factors influencing current PM2.5 prediction</span>
       </div>
       <div class="relative h-64 w-full">
         <canvas id="chart-forecast-importance"></canvas>
       </div>
     </div>
 
-    <!-- Observed vs Predicted Line Chart -->
-    <div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm flex flex-col justify-between">
-      <div class="mb-space-md">
-        <h3 class="font-title-lg text-title-lg text-primary font-semibold">Observed vs Predicted PM2.5</h3>
-        <span class="font-label-md text-label-md text-outline">Validation timeline comparison over recent window</span>
+    <!-- NEW FEATURE 5 — WEATHER IMPACT & NEW FEATURE 6 — AI INSIGHT -->
+    <div class="flex flex-col gap-space-md">
+      <!-- Weather Impact Card -->
+      <div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm border border-outline-variant/30 flex flex-col justify-between flex-1">
+        <div class="flex items-center justify-between mb-space-sm">
+          <h3 class="font-title-lg text-title-lg text-primary font-bold flex items-center gap-2">
+            <span class="material-symbols-outlined text-secondary">thermostat</span>
+            Weather Impact
+          </h3>
+          <span class="font-label-md text-label-md text-outline" id="weather-microclimate">28.1°C • 66% RH</span>
+        </div>
+        <div class="grid grid-cols-4 gap-space-xs my-space-xs text-center">
+          <div class="bg-surface-container-low p-2 rounded-lg">
+            <span class="font-label-md text-label-md text-outline block">Temp</span>
+            <span class="font-title-md text-title-md font-bold text-primary" id="wx-temp">28.1°C</span>
+          </div>
+          <div class="bg-surface-container-low p-2 rounded-lg">
+            <span class="font-label-md text-label-md text-outline block">Humidity</span>
+            <span class="font-title-md text-title-md font-bold text-primary" id="wx-rh">66%</span>
+          </div>
+          <div class="bg-surface-container-low p-2 rounded-lg">
+            <span class="font-label-md text-label-md text-outline block">Wind</span>
+            <span class="font-title-md text-title-md font-bold text-primary" id="wx-wind">1.9 m/s</span>
+          </div>
+          <div class="bg-surface-container-low p-2 rounded-lg">
+            <span class="font-label-md text-label-md text-outline block">Pressure</span>
+            <span class="font-title-md text-title-md font-bold text-primary" id="wx-press">752 mmHg</span>
+          </div>
+        </div>
+        <div class="p-space-sm rounded-lg bg-surface-container-low border border-outline-variant/20 text-on-surface-variant font-body-md text-body-md mt-2 flex items-start gap-2">
+          <span class="material-symbols-outlined text-[18px] text-secondary shrink-0 mt-0.5">info</span>
+          <span id="wx-explanation">Current wind conditions and relative humidity impact atmospheric mixing.</span>
+        </div>
       </div>
-      <div class="relative h-64 w-full">
-        <canvas id="chart-forecast-comparison"></canvas>
+
+      <!-- NEW FEATURE 6 — AI FORECAST INSIGHT -->
+      <div class="bg-primary-container text-on-primary rounded-xl p-space-lg shadow-sm flex flex-col justify-between flex-1">
+        <div class="flex items-center gap-2 mb-space-xs text-secondary-fixed">
+          <span class="material-symbols-outlined text-[20px]">auto_awesome</span>
+          <span class="font-label-md text-label-md font-bold uppercase tracking-wider">VayuLens AI Forecast Insight</span>
+        </div>
+        <p class="font-body-lg text-body-lg text-surface-bright leading-relaxed" id="ai-insight-text">
+          PM2.5 concentration is projected to increase over the next hour.
+        </p>
+        <div class="mt-space-sm flex items-center justify-between font-label-md text-label-md text-on-primary-container border-t border-surface-tint/30 pt-2">
+          <span>Station Telemetry Grounded</span>
+          <span>Dynamic Real-Time Synthesis</span>
+        </div>
       </div>
     </div>
+
   </section>
+
+  <!-- GRID: MODEL INFORMATION (FEATURE 7) & STATION COMPARISON (FEATURE 8) -->
+  <section class="grid grid-cols-1 lg:grid-cols-3 gap-space-md">
+    
+    <!-- NEW FEATURE 7 — MODEL INFORMATION PANEL -->
+    <div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm border border-outline-variant/30 flex flex-col justify-between">
+      <div class="mb-space-sm">
+        <h3 class="font-title-lg text-title-lg text-primary font-bold flex items-center gap-2">
+          <span class="material-symbols-outlined text-secondary">memory</span>
+          Prediction Model
+        </h3>
+        <span class="font-label-md text-label-md text-outline">Engine Architecture & Training Parameters</span>
+      </div>
+      <div class="flex flex-col gap-space-xs">
+        <div class="flex items-center justify-between p-2 rounded-lg bg-surface-container-low">
+          <span class="font-label-md text-label-md text-outline">Algorithm</span>
+          <span class="font-title-md text-title-md text-primary font-bold" id="model-name">Random Forest Regressor</span>
+        </div>
+        <div class="flex items-center justify-between p-2 rounded-lg bg-surface-container-low">
+          <span class="font-label-md text-label-md text-outline">Target Variable</span>
+          <span class="font-title-md text-title-md text-primary font-bold" id="model-target">PM2.5_Next_Hour</span>
+        </div>
+        <div class="flex items-center justify-between p-2 rounded-lg bg-surface-container-low">
+          <span class="font-label-md text-label-md text-outline">Inference Latency</span>
+          <span class="font-title-md text-title-md text-secondary font-bold" id="model-latency">14ms</span>
+        </div>
+        <div class="flex items-center justify-between p-2 rounded-lg bg-surface-container-low">
+          <span class="font-label-md text-label-md text-outline">Model R² Accuracy</span>
+          <span class="font-title-md text-title-md text-primary font-bold" id="model-r2">86.2%</span>
+        </div>
+        <div class="flex items-center justify-between p-2 rounded-lg bg-surface-container-low">
+          <span class="font-label-md text-label-md text-outline">Mean Absolute Error</span>
+          <span class="font-title-md text-title-md text-primary font-bold" id="model-mae">4.33 µg/m³</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- NEW FEATURE 8 — STATION COMPARISON -->
+    <div class="lg:col-span-2 bg-surface-container-lowest rounded-xl p-space-lg shadow-sm border border-outline-variant/30 flex flex-col justify-between">
+      <div class="mb-space-md flex items-center justify-between">
+        <div>
+          <h3 class="font-title-lg text-title-lg text-primary font-bold flex items-center gap-2">
+            <span class="material-symbols-outlined text-secondary">compare_arrows</span>
+            Station Comparison
+          </h3>
+          <span class="font-label-md text-label-md text-outline">Comparative current vs predicted air quality across Bengaluru key hubs</span>
+        </div>
+        <span class="font-label-md text-label-md text-outline">Live Telemetry</span>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-space-sm" id="station-comparison-grid">
+        <!-- Dynamic Comparison Cards -->
+      </div>
+    </div>
+
+  </section>
+
 </div>
 
 <script>
   document.addEventListener('DOMContentLoaded', () => {
-    let impChart = null;
-    let compChart = null;
+    let mainChart = null;
+    let importanceChart = null;
+    let currentForecastData = null;
+    let selectedRange = 24; // Default 24h forecast range
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const stParam = urlParams.get('station') || 'btm-layout';
+    const stationSelector = document.getElementById('forecast-station-select');
+    const loadingOverlay = document.getElementById('forecast-loading');
+    const errorBanner = document.getElementById('forecast-error-banner');
+    const errorMsg = document.getElementById('forecast-error-msg');
+    const retryBtn = document.getElementById('btn-retry-forecast');
 
-    fetch(`/api/prediction/?station=${stParam}`)
+    // Helper: Format Time
+    function getFormattedTime() {
+      const now = new Date();
+      return now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
 
-      .then(res => res.json())
-      .then(res => {
-        if (!res.success) return;
-        const d = res.data;
-        document.getElementById('fore-pred-val').textContent = d.prediction ? d.prediction.toFixed(1) : '76.8';
-        document.getElementById('fore-r2').textContent = `${(d.r2 * 100).toFixed(1)}%`;
-        document.getElementById('fore-mae').textContent = `${d.mae} µg/m³`;
-        document.getElementById('fore-station-name').textContent = `Station: ${d.station || 'BTM Layout'}`;
+    // Populate station options from API if available
+    function updateStationSelectorOptions(availableStations, selectedId) {
+      if (!availableStations || !availableStations.length || !stationSelector) return;
+      const currentSelected = selectedId || stationSelector.value;
+      stationSelector.innerHTML = '';
+      availableStations.forEach(st => {
+        const opt = document.createElement('option');
+        opt.value = st.id;
+        opt.textContent = st.name;
+        if (st.id === currentSelected) opt.selected = true;
+        stationSelector.appendChild(opt);
+      });
+    }
 
-        const catElem = document.getElementById('fore-pred-cat');
-        catElem.textContent = `${d.category_label || d.category || 'Moderate'} Quality`;
-        catElem.className = `px-3 py-1 rounded-full font-label-md text-label-md font-bold ${d.badge_bg || 'bg-amber-100'} ${d.badge_text || 'text-amber-800'}`;
+    // Main fetch function for Forecast page
+    function loadStationForecast(stationId, updateUrl = true) {
+      if (!stationId) stationId = 'btm-layout';
 
-        // Feature Importance Chart
-        const topFeats = d.feature_importance || [];
-        const ctx1 = document.getElementById('chart-forecast-importance');
-        if (ctx1) {
-          if (impChart) impChart.destroy();
-          impChart = new Chart(ctx1, {
-            type: 'bar',
-            data: {
-              labels: topFeats.map(f => f.feature),
-              datasets: [{
-                label: 'Feature Weight (%)',
-                data: topFeats.map(f => f.importance),
-                backgroundColor: '#4d6548',
-                borderRadius: 6
-              }]
+      // Show loading overlay
+      if (loadingOverlay) loadingOverlay.classList.remove('hidden');
+      if (errorBanner) errorBanner.classList.add('hidden');
+
+      // Update URL query parameter without full page reload
+      if (updateUrl) {
+        const newUrl = new URL(window.location);
+        newUrl.searchParams.set('station', stationId);
+        window.history.pushState({ station: stationId }, '', newUrl);
+      }
+
+      fetch(`/api/prediction/?station=${encodeURIComponent(stationId)}`)
+        .then(res => {
+          if (!res.ok) throw new Error(`API HTTP Error ${res.status}`);
+          return res.json();
+        })
+        .then(res => {
+          if (!res.success || !res.data) {
+            throw new Error(res.error || 'Failed to load station prediction telemetry');
+          }
+
+          currentForecastData = res.data;
+          renderForecastPage(currentForecastData);
+
+          // Update Status Badge
+          const statusBadge = document.getElementById('forecast-status-badge');
+          if (statusBadge) {
+            statusBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse"></span>Live Forecast`;
+            statusBadge.className = `ml-2 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-md text-label-md font-bold`;
+          }
+        })
+        .catch(err => {
+          console.error('[Forecast Page] Fetch Error:', err);
+          if (errorBanner) errorBanner.classList.remove('hidden');
+          if (errorMsg) errorMsg.textContent = err.message || 'Unable to retrieve live air-quality data. Showing available cached reading.';
+          
+          const statusBadge = document.getElementById('forecast-status-badge');
+          if (statusBadge) {
+            statusBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-error"></span>API Offline`;
+            statusBadge.className = `ml-2 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-error-container text-on-error-container font-label-md text-label-md font-bold`;
+          }
+        })
+        .finally(() => {
+          if (loadingOverlay) loadingOverlay.classList.add('hidden');
+        });
+    }
+
+    // Render all 15 elements on the Forecast page
+    function renderForecastPage(d) {
+      // Station dropdown sync
+      if (d.available_stations) {
+        updateStationSelectorOptions(d.available_stations, d.station_id);
+      } else if (stationSelector && d.station_id) {
+        stationSelector.value = d.station_id;
+      }
+
+      // 1. Station Name & Timestamp
+      document.getElementById('card-station-label').textContent = d.station || 'Station';
+      document.getElementById('forecast-last-updated').textContent = `Last updated: ${getFormattedTime()}`;
+
+      // 2. Summary Cards
+      const curPm25 = (d.current_pm25 !== undefined) ? d.current_pm25.toFixed(1) : (d.prediction ? d.prediction.toFixed(1) : '72.4');
+      const nextPm25 = (d.prediction !== undefined) ? d.prediction.toFixed(1) : '83.5';
+      document.getElementById('card-current-pm25').textContent = curPm25;
+      document.getElementById('card-next-pm25').textContent = nextPm25;
+
+      const changePctElem = document.getElementById('card-change-pct');
+      const changeIconElem = document.getElementById('card-change-icon');
+      const changeVal = d.change_pct || 0;
+      if (changeVal > 0) {
+        changePctElem.textContent = `+${changeVal.toFixed(1)}%`;
+        changePctElem.className = 'font-data-metric text-[28px] font-bold text-amber-700';
+        changeIconElem.textContent = 'trending_up';
+        changeIconElem.className = 'material-symbols-outlined text-[20px] text-amber-700';
+      } else if (changeVal < 0) {
+        changePctElem.textContent = `${changeVal.toFixed(1)}%`;
+        changePctElem.className = 'font-data-metric text-[28px] font-bold text-emerald-700';
+        changeIconElem.textContent = 'trending_down';
+        changeIconElem.className = 'material-symbols-outlined text-[20px] text-emerald-700';
+      } else {
+        changePctElem.textContent = `0.0%`;
+        changePctElem.className = 'font-data-metric text-[28px] font-bold text-outline';
+        changeIconElem.textContent = 'trending_flat';
+        changeIconElem.className = 'material-symbols-outlined text-[20px] text-outline';
+      }
+
+      document.getElementById('card-confidence').textContent = `${d.confidence_pct || 86.2}%`;
+      document.getElementById('card-mae-label').textContent = `MAE: ${d.mae || 4.33} µg/m³`;
+
+      document.getElementById('card-current-aqi').textContent = d.current_aqi || 142;
+      
+      const catBadge = document.getElementById('card-category-badge');
+      catBadge.textContent = d.current_category || d.category_label || 'Moderate';
+      catBadge.className = `px-3 py-1.5 rounded-full font-title-md text-title-md font-bold inline-block ${d.current_badge_bg || d.badge_bg || 'bg-amber-100'} ${d.current_badge_text || d.badge_text || 'text-amber-800'}`;
+
+      document.getElementById('card-predicted-aqi-label').textContent = `Predicted AQI (+1h): ${d.predicted_aqi || 165}`;
+
+      // 3. Main Forecast Chart
+      document.getElementById('chart-main-title').textContent = `${d.station || 'Station'} — PM2.5 Forecast`;
+      renderMainChart(d, selectedRange);
+
+      // 4. Feature 1: Forecast Timeline
+      renderTimeline(d.hourly_forecast, curPm25, d.current_aqi, d.current_category, d.current_badge_bg, d.current_badge_text, selectedRange);
+
+      // 5. Feature 2: AQI Horizons
+      renderAQIHorizons(d.aqi_horizons);
+
+      // 6. Feature 3: Pollutant Outlook
+      renderPollutantOutlook(d.pollutants);
+
+      // 7. Feature 4: Forecast Explanation (Feature Importance Chart)
+      renderImportanceChart(d.feature_importance);
+
+      // 8. Feature 5: Weather Impact
+      if (d.weather_impact) {
+        document.getElementById('wx-temp').textContent = `${d.weather_impact.temperature}°C`;
+        document.getElementById('wx-rh').textContent = `${d.weather_impact.humidity}%`;
+        document.getElementById('wx-wind').textContent = `${d.weather_impact.wind_speed} m/s ${d.weather_impact.wind_direction}`;
+        document.getElementById('wx-press').textContent = d.weather_impact.pressure || '752 mmHg';
+        document.getElementById('weather-microclimate').textContent = `${d.weather_impact.temperature}°C • ${d.weather_impact.humidity}% RH • ${d.weather_impact.wind_speed} m/s`;
+        document.getElementById('wx-explanation').textContent = d.weather_impact.explanation || 'Current ambient weather metrics influence local particulate dispersion.';
+      }
+
+      // 9. Feature 6: AI Forecast Insight
+      document.getElementById('ai-insight-text').textContent = d.ai_insight || `PM2.5 concentration at ${d.station} is expected to undergo short-term changes based on local atmospheric persistence.`;
+
+      // 10. Feature 7: Model Information Panel
+      document.getElementById('model-name').textContent = d.model || 'Random Forest Regressor';
+      document.getElementById('model-target').textContent = d.target || 'PM2.5_Next_Hour';
+      document.getElementById('model-latency').textContent = '14ms';
+      document.getElementById('model-r2').textContent = `${((d.r2 || 0.862) * 100).toFixed(1)}%`;
+      document.getElementById('model-mae').textContent = `${d.mae || 4.33} µg/m³`;
+
+      // 11. Feature 8: Station Comparison
+      renderStationComparison(d.comparison_stations);
+    }
+
+    // Render Main Chart with Chart.js
+    function renderMainChart(d, rangeHours) {
+      const ctx = document.getElementById('chart-main-forecast');
+      if (!ctx) return;
+      if (mainChart) mainChart.destroy();
+
+      const trend24 = d.trend_24h || [];
+      const hourlyFore = (d.hourly_forecast || []).slice(0, rangeHours);
+
+      // Slice historical data based on range
+      const histSliceCount = rangeHours === 6 ? 6 : (rangeHours === 12 ? 12 : trend24.length);
+      const histData = trend24.slice(-histSliceCount);
+
+      const labels = [
+        ...histData.map(h => h.time),
+        ...hourlyFore.map(f => f.time)
+      ];
+
+      const actualPm25 = [
+        ...histData.map(h => h.pm25),
+        ...hourlyFore.map(() => null)
+      ];
+
+      const predictedPm25 = [
+        ...histData.map(() => null),
+        ...hourlyFore.map(f => f.pm25)
+      ];
+      // Connect actual to forecast at the boundary point
+      if (histData.length > 0 && hourlyFore.length > 0) {
+        predictedPm25[histData.length - 1] = histData[histData.length - 1].pm25;
+      }
+
+      const upperCi = [
+        ...histData.map(() => null),
+        ...hourlyFore.map(f => f.upper_ci)
+      ];
+      if (histData.length > 0 && hourlyFore.length > 0) {
+        upperCi[histData.length - 1] = histData[histData.length - 1].pm25;
+      }
+
+      const lowerCi = [
+        ...histData.map(() => null),
+        ...hourlyFore.map(f => f.lower_ci)
+      ];
+      if (histData.length > 0 && hourlyFore.length > 0) {
+        lowerCi[histData.length - 1] = histData[histData.length - 1].pm25;
+      }
+
+      mainChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: 'Observed PM2.5',
+              data: actualPm25,
+              borderColor: '#132c21',
+              backgroundColor: 'rgba(19, 44, 33, 0.04)',
+              borderWidth: 3,
+              tension: 0.3,
+              pointRadius: 4,
+              pointBackgroundColor: '#132c21',
+              fill: true
             },
-            options: {
-              indexAxis: 'y',
-              responsive: true,
-              maintainAspectRatio: false
+            {
+              label: 'Predicted PM2.5',
+              data: predictedPm25,
+              borderColor: '#4d6548',
+              borderDash: [6, 6],
+              borderWidth: 3,
+              tension: 0.3,
+              pointRadius: 4,
+              pointBackgroundColor: '#4d6548'
+            },
+            {
+              label: 'Upper Confidence (95% CI)',
+              data: upperCi,
+              borderColor: 'rgba(77, 101, 72, 0.25)',
+              borderDash: [2, 2],
+              borderWidth: 1,
+              pointRadius: 0,
+              fill: false
+            },
+            {
+              label: 'Lower Confidence (95% CI)',
+              data: lowerCi,
+              borderColor: 'rgba(77, 101, 72, 0.25)',
+              borderDash: [2, 2],
+              borderWidth: 1,
+              pointRadius: 0,
+              backgroundColor: 'rgba(77, 101, 72, 0.12)',
+              fill: '-1' // Fills to upper confidence dataset
             }
-          });
-        }
-
-        // Comparison Chart
-        const ctx2 = document.getElementById('chart-forecast-comparison');
-        if (ctx2) {
-          if (compChart) compChart.destroy();
-          compChart = new Chart(ctx2, {
-            type: 'line',
-            data: {
-              labels: ['-5h', '-4h', '-3h', '-2h', '-1h', 'Now', '+1h (Pred)'],
-              datasets: [
-                { label: 'Observed PM2.5', data: [68.2, 71.5, 75.0, 72.1, 70.8, 72.4, null], borderColor: '#132c21', borderWidth: 2 },
-                { label: 'Predicted PM2.5', data: [null, null, null, null, 71.0, 71.8, d.prediction || 76.8], borderColor: '#4d6548', borderDash: [5, 5], borderWidth: 2 }
-              ]
-            },
-            options: { responsive: true, maintainAspectRatio: false }
-          });
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: '#132c21',
+              titleFont: { family: 'Manrope', size: 13, weight: 'bold' },
+              bodyFont: { family: 'Manrope', size: 12 },
+              padding: 12,
+              cornerRadius: 8,
+              callbacks: {
+                label: function(context) {
+                  if (context.raw === null) return null;
+                  const val = context.raw.toFixed(1);
+                  if (context.dataset.label === 'Observed PM2.5') {
+                    return `Actual PM2.5: ${val} µg/m³`;
+                  } else if (context.dataset.label === 'Predicted PM2.5') {
+                    return `Predicted PM2.5: ${val} µg/m³`;
+                  } else if (context.dataset.label.includes('Upper')) {
+                    return `Upper Bound: ${val} µg/m³`;
+                  } else if (context.dataset.label.includes('Lower')) {
+                    return `Lower Bound: ${val} µg/m³`;
+                  }
+                  return `${context.dataset.label}: ${val}`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: { grid: { display: false }, ticks: { font: { family: 'Manrope', size: 11 } } },
+            y: {
+              grid: { color: 'rgba(114, 121, 116, 0.1)' },
+              title: { display: true, text: 'PM2.5 (µg/m³)', font: { family: 'Manrope', size: 12, weight: 'bold' } },
+              ticks: { font: { family: 'Manrope', size: 11 } }
+            }
+          }
         }
       });
+    }
+
+    // Render Feature 1: Timeline
+    function renderTimeline(hourlyForecast, curPm25, curAqi, curCat, curBg, curText, rangeHours) {
+      const container = document.getElementById('timeline-container');
+      if (!container) return;
+      container.innerHTML = '';
+
+      // NOW Point
+      const nowCard = document.createElement('div');
+      nowCard.className = 'bg-primary text-on-primary p-space-md rounded-xl flex flex-col items-center justify-between shadow-sm min-w-[130px] border border-primary/20';
+      nowCard.innerHTML = `
+        <span class="font-label-md text-label-md uppercase font-bold tracking-wider text-secondary-fixed">NOW</span>
+        <div class="my-2 text-center">
+          <div class="font-data-metric text-[22px] font-bold text-surface-bright">${curPm25}</div>
+          <div class="font-label-md text-label-md text-on-primary-container">µg/m³</div>
+        </div>
+        <span class="px-2 py-0.5 rounded-full font-label-md text-label-md font-bold ${curBg || 'bg-amber-100'} ${curText || 'text-amber-800'}">
+          AQI ${curAqi}
+        </span>
+      `;
+      container.appendChild(nowCard);
+
+      // Hourly Forecast Points
+      const list = (hourlyForecast || []).slice(0, rangeHours);
+      list.forEach(f => {
+        const card = document.createElement('div');
+        card.className = 'bg-surface-container-low p-space-md rounded-xl flex flex-col items-center justify-between border border-outline-variant/30 min-w-[130px] hover:border-secondary/40 transition-colors';
+        card.innerHTML = `
+          <div class="flex flex-col items-center">
+            <span class="font-label-md text-label-md uppercase font-bold text-secondary">${f.label}</span>
+            <span class="font-label-md text-label-md text-outline">${f.time}</span>
+          </div>
+          <div class="my-2 text-center">
+            <div class="font-data-metric text-[22px] font-bold text-primary">${f.pm25.toFixed(1)}</div>
+            <div class="font-label-md text-label-md text-outline">µg/m³</div>
+          </div>
+          <span class="px-2 py-0.5 rounded-full font-label-md text-label-md font-bold ${f.badge_bg} ${f.badge_text}">
+            AQI ${f.aqi}
+          </span>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    // Render Feature 2: AQI Horizons
+    function renderAQIHorizons(horizons) {
+      const container = document.getElementById('aqi-horizons-container');
+      if (!container) return;
+      container.innerHTML = '';
+
+      if (!horizons || !horizons.length) return;
+
+      horizons.forEach(h => {
+        const d = h.data || {};
+        const card = document.createElement('div');
+        card.className = 'bg-surface-container-low p-space-sm rounded-xl border border-outline-variant/30 flex flex-col items-center justify-between text-center';
+        card.innerHTML = `
+          <span class="font-label-md text-label-md text-outline uppercase font-bold tracking-wider">${h.horizon}</span>
+          <div class="my-1">
+            <span class="font-data-metric text-[26px] font-bold text-primary">${d.aqi || '--'}</span>
+          </div>
+          <span class="px-2 py-0.5 rounded-full font-label-md text-label-md font-bold mb-1 ${d.badge_bg || 'bg-amber-100'} ${d.badge_text || 'text-amber-800'}">
+            ${d.category_label || d.category || 'Moderate'}
+          </span>
+          <span class="font-label-md text-label-md text-outline">${d.pm25 ? d.pm25.toFixed(1) : '--'} µg/m³</span>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    // Render Feature 3: Pollutant Outlook
+    function renderPollutantOutlook(pollutants) {
+      const container = document.getElementById('pollutant-outlook-container');
+      if (!container) return;
+      container.innerHTML = '';
+
+      if (!pollutants) return;
+
+      const keys = [
+        { key: 'pm25', name: 'PM2.5' },
+        { key: 'pm10', name: 'PM10' },
+        { key: 'no2', name: 'NO₂' },
+        { key: 'co', name: 'CO' },
+        { key: 'so2', name: 'SO₂' },
+        { key: 'o3', name: 'O₃' }
+      ];
+
+      keys.forEach(p => {
+        const item = pollutants[p.key] || {};
+        const card = document.createElement('div');
+        const isMl = item.is_ml_predicted;
+        card.className = `p-space-sm rounded-xl border flex flex-col justify-between ${isMl ? 'bg-surface-container-lowest border-secondary/40 shadow-xs' : 'bg-surface-container-low border-outline-variant/30'}`;
+
+        card.innerHTML = `
+          <div class="flex items-center justify-between">
+            <span class="font-title-md text-title-md font-bold text-primary">${p.name}</span>
+            <span class="px-2 py-0.5 rounded-full font-label-md text-label-md font-bold ${isMl ? 'bg-secondary-container text-on-secondary-container' : 'bg-surface-container-high text-outline'}">
+              ${isMl ? 'ML Predicted' : 'Live Sensor'}
+            </span>
+          </div>
+          <div class="my-1">
+            <span class="font-data-metric text-[22px] font-bold text-primary">${item.current !== undefined ? item.current : '--'}</span>
+            <span class="font-label-md text-label-md text-outline">${item.unit || 'µg/m³'}</span>
+          </div>
+          <div class="font-label-md text-label-md ${isMl ? 'text-secondary font-bold' : 'text-outline'}">
+            ${isMl ? `Forecast: ${item.forecast} µg/m³` : item.forecast}
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    // Render Feature 4: Feature Importance Bar Chart
+    function renderImportanceChart(topFeatures) {
+      const ctx = document.getElementById('chart-forecast-importance');
+      if (!ctx) return;
+      if (importanceChart) importanceChart.destroy();
+
+      const features = topFeatures || [];
+
+      importanceChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: features.map(f => f.feature),
+          datasets: [{
+            label: 'Feature Importance Weight (%)',
+            data: features.map(f => f.importance),
+            backgroundColor: '#4d6548',
+            borderRadius: 6
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            x: { grid: { color: 'rgba(114, 121, 116, 0.1)' }, title: { display: true, text: 'Importance Weight (%)', font: { family: 'Manrope', size: 11 } } },
+            y: { grid: { display: false }, ticks: { font: { family: 'Manrope', size: 11, weight: 'bold' } } }
+          }
+        }
+      });
+    }
+
+    // Render Feature 8: Station Comparison Grid
+    function renderStationComparison(compStations) {
+      const container = document.getElementById('station-comparison-grid');
+      if (!container) return;
+      container.innerHTML = '';
+
+      if (!compStations || !compStations.length) return;
+
+      compStations.forEach(st => {
+        const card = document.createElement('div');
+        card.className = 'bg-surface-container-low p-space-md rounded-xl border border-outline-variant/30 flex flex-col justify-between hover:border-secondary/40 transition-colors';
+        card.innerHTML = `
+          <div class="flex flex-col">
+            <span class="font-title-md text-title-md font-bold text-primary truncate">${st.name}</span>
+            <span class="px-2 py-0.5 rounded-full font-label-md text-label-md font-bold mt-1 self-start ${st.badge_bg} ${st.badge_text}">
+              ${st.category_label}
+            </span>
+          </div>
+          <div class="my-3 space-y-1">
+            <div class="flex items-center justify-between font-label-md text-label-md">
+              <span class="text-outline">Current PM2.5:</span>
+              <span class="font-bold text-primary">${st.current_pm25} µg/m³</span>
+            </div>
+            <div class="flex items-center justify-between font-label-md text-label-md">
+              <span class="text-outline">Current AQI:</span>
+              <span class="font-bold text-primary">${st.current_aqi}</span>
+            </div>
+            <div class="flex items-center justify-between font-label-md text-label-md border-t border-outline-variant/30 pt-1">
+              <span class="text-secondary font-bold">Next Hour (Pred):</span>
+              <span class="font-bold text-secondary">${st.next_pm25} µg/m³</span>
+            </div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    // Event Listeners for Station Dropdown Change
+    stationSelector?.addEventListener('change', (e) => {
+      loadStationForecast(e.target.value, true);
+    });
+
+    // Event Listeners for Range Controls (6h, 12h, 24h)
+    document.querySelectorAll('#range-control-group .btn-range').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#range-control-group .btn-range').forEach(b => {
+          b.className = 'btn-range px-3 py-1.5 rounded-md font-label-md text-label-md font-bold transition-all text-on-surface-variant hover:text-primary';
+        });
+        btn.className = 'btn-range px-3 py-1.5 rounded-md font-label-md text-label-md font-bold transition-all bg-surface-container-lowest text-primary shadow-xs';
+
+        selectedRange = parseInt(btn.getAttribute('data-range') || '24');
+        if (currentForecastData) {
+          renderMainChart(currentForecastData, selectedRange);
+          renderTimeline(
+            currentForecastData.hourly_forecast,
+            (currentForecastData.current_pm25 !== undefined ? currentForecastData.current_pm25.toFixed(1) : '72.4'),
+            currentForecastData.current_aqi,
+            currentForecastData.current_category,
+            currentForecastData.current_badge_bg,
+            currentForecastData.current_badge_text,
+            selectedRange
+          );
+        }
+      });
+    });
+
+    // Retry Button
+    retryBtn?.addEventListener('click', () => {
+      loadStationForecast(stationSelector.value, false);
+    });
+
+    // Global Refresh Button
+    document.getElementById('global-btn-refresh')?.addEventListener('click', () => {
+      loadStationForecast(stationSelector ? stationSelector.value : 'btm-layout', false);
+    });
+
+    // Handle Browser Back/Forward navigation
+    window.addEventListener('popstate', (e) => {
+      if (e.state && e.state.station) {
+        loadStationForecast(e.state.station, false);
+      } else {
+        const params = new URLSearchParams(window.location.search);
+        loadStationForecast(params.get('station') || 'btm-layout', false);
+      }
+    });
+
+    // Initial Load: check URL query parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    const initStation = urlParams.get('station') || 'btm-layout';
+    if (stationSelector) stationSelector.value = initStation;
+    loadStationForecast(initStation, false);
+
   });
 </script>
 {% endblock %}

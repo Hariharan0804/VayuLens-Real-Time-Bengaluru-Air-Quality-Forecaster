@@ -48,7 +48,9 @@ class PredictionView(BaseAPIView):
         station_data = StationService.get_station_by_id(station_id)
         prediction_res = PredictionService.get_prediction(station_data)
         if prediction_res.get('success'):
-            return self.success_response(prediction_res['data'])
+            data = prediction_res['data']
+            data['available_stations'] = StationService.get_all_stations()
+            return self.success_response(data)
         return self.error_response(prediction_res.get('error', 'Prediction error'))
 
 class DashboardLiveView(BaseAPIView):
