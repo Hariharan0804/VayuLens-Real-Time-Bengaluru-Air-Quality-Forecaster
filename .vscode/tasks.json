@@ -1,0 +1,26 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Run VayuLens Server",
+            "type": "process",
+            "command": "C:\\Users\\HARI\\Desktop\\ml project\\airpollution\\VayuLens\\venv\\Scripts\\python.exe",
+            "args": [
+                "C:\\Users\\HARI\\Desktop\\ml project\\airpollution\\VayuLens\\manage.py",
+                "runserver"
+            ],
+            "options": {
+                "cwd": "C:\\Users\\HARI\\Desktop\\ml project\\airpollution\\VayuLens"
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "integrated"
+            },
+            "problemMatcher": []
+        }
+    ]
+}

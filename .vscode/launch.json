@@ -1,0 +1,31 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "VayuLens Django Server",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "C:\\Users\\HARI\\Desktop\\ml project\\airpollution\\VayuLens\\manage.py",
+            "args": [
+                "runserver"
+            ],
+            "cwd": "C:\\Users\\HARI\\Desktop\\ml project\\airpollution\\VayuLens",
+            "python": "C:\\Users\\HARI\\Desktop\\ml project\\airpollution\\VayuLens\\venv\\Scripts\\python.exe",
+            "console": "integratedTerminal",
+            "django": true
+        },
+        {
+            "name": "VayuLens Django Server",
+            "type": "python",
+            "request": "launch",
+            "program": "C:\\Users\\HARI\\Desktop\\ml project\\airpollution\\VayuLens\\manage.py",
+            "args": [
+                "runserver"
+            ],
+            "cwd": "C:\\Users\\HARI\\Desktop\\ml project\\airpollution\\VayuLens",
+            "python": "C:\\Users\\HARI\\Desktop\\ml project\\airpollution\\VayuLens\\venv\\Scripts\\python.exe",
+            "console": "integratedTerminal",
+            "django": true
+        }
+    ]
+}
